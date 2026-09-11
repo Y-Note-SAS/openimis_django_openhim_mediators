@@ -1,6 +1,8 @@
 Django==4.2.14
 requests
-git+https://github.com/de-laz/openhim-mediator-utils-py
+APScheduler
+uptime
+urllib3
 djangorestframework
 setuptools
 six
