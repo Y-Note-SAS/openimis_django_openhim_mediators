@@ -1,16 +1,12 @@
-version: "3"
-
 services:
   mediators:
     build:
       context: .
     ports:
-      - "8002:8002"
+      - "192.168.0.119:8002:8002"
     volumes:
       - ./mediators:/mediators
     command: >
-      sh -c "python manage.py runserver 0.0.0.0:8002"                                               
-
-
-
-
+      sh -c "python manage.py runserver 0.0.0.0:8002"
+    container_name: mediators-test
+    restart: unless-stopped
