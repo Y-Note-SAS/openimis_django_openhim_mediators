@@ -85,18 +85,18 @@ def registerClaimsMediator():
 	}
 
 	conf = {
-	"urn": "urn:mediator:python_fhir_r4_claim_mediator",
-	"version": "1.0.1",
-	"name": "Python Fhir R4 Claim Mediator",
-	"description": "Python Fhir R4 Claim Mediator",
+	"urn": "urn:mediator:openimis_fhir_r4_claim_mediator",
+	"version": "1.0.2",
+	"name": "openIMIS Fhir R4 Claim Mediator",
+	"description": "openIMIS Fhir R4 Claim Mediator",
 
 	"defaultChannelConfig": [
 		{
-			"name": "Python Fhir R4 Claim Mediator",
+			"name": "openIMIS Fhir R4 Claim Mediator",
 			"urlPattern": "^/api/api_fhir_r4/Claim$",
 			"routes": [
 				{
-					"name": "Python Fhir R4 Claim Mediator Route",
+					"name": "openIMIS Fhir R4 Claim Mediator Route",
 					"host": configurations["data"]["mediator_url"],
 					"path": "/api/api_fhir_r4/Claim",
 					"port": configurations["data"]["mediator_port"],
