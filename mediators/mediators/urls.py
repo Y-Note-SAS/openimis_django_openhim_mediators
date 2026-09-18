@@ -52,11 +52,11 @@ urlpatterns = [
 #register Mediators - once -- uncomment after setting up variables
 
 
-registerClaimsMediator()
-registerCoverageMediator()
-registerOrganisationMediator()
-registerGroupMediator()
-registerPatientMediator()
-registerContractMediator()
-registerClaimResponseMediator()
-registerCoverageEligibilityRequestMediator()
+# registerClaimsMediator()
+# registerCoverageMediator()
+# registerOrganisationMediator()
+# registerGroupMediator()
+# registerPatientMediator()
+# registerContractMediator()
+# registerClaimResponseMediator()
+# registerCoverageEligibilityRequestMediator()
