@@ -85,18 +85,18 @@ def registerGroupMediator():
 	}
 
 	conf = {
-	"urn": "urn:mediator:python_fhir_r4_Group_mediator",
-	"version": "1.0.1",
-	"name": "Python Fhir R4 Group Mediator",
-	"description": "Python Fhir R4 Group Mediator",
+	"urn": "urn:mediator:openimis_fhir_r4_Group_mediator",
+	"version": "1.0.2",
+	"name": "openIMIS Fhir R4 Group Mediator",
+	"description": "openIMIS Fhir R4 Group Mediator",
 
 	"defaultChannelConfig": [
 		{
-			"name": "Python Fhir R4 Group Mediator",
+			"name": "openIMIS Fhir R4 Group Mediator",
 			"urlPattern": "^/api/api_fhir_r4/Group$",
 			"routes": [
 				{
-					"name": "Python Fhir R4 Group Mediator Route",
+					"name": "openIMIS Fhir R4 Group Mediator Route",
 					"host": configurations["data"]["mediator_url"],
 					"path": "/api/api_fhir_r4/Group",
 					"port": configurations["data"]["mediator_port"],

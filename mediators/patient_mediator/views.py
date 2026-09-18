@@ -86,17 +86,17 @@ def registerPatientMediator():
 
 	conf = {
 	"urn": "urn:mediator:python_fhir_r4_Patient_mediator",
-	"version": "1.0.1",
-	"name": "Python Fhir R4 Patient Mediator",
-	"description": "Python Fhir R4 Patient Mediator",
+	"version": "1.0.2",
+	"name": "openIMIS Fhir R4 Patient Mediator",
+	"description": "openIMIS Fhir R4 Patient Mediator",
 
 	"defaultChannelConfig": [
 		{
-			"name": "Python Fhir R4 Patient Mediator",
+			"name": "openIMIS Fhir R4 Patient Mediator",
 			"urlPattern": "^/api/api_fhir_r4/Patient$",
 			"routes": [
 				{
-					"name": "Python Fhir R4 Patient Mediator Route",
+					"name": "openIMIS Fhir R4 Patient Mediator Route",
 					"host": configurations["data"]["mediator_url"],
 					"path": "/api/api_fhir_r4/Patient",
 					"port": configurations["data"]["mediator_port"],
