@@ -64,7 +64,7 @@ class GetPatientTests(TestCase):
         args, kwargs = mock_request.call_args
         self.assertEqual(args[0], "GET")
         self.assertEqual(
-            args[1], "http://openimis.local:8080/api/api_fhir_r4/Patient"
+            args[1], "http://openimis.local:8080/api/api_fhir_r4/Patient/"
         )
         self.assertEqual(kwargs["params"], {})
         self.assertIn("Authorization", kwargs["headers"])
