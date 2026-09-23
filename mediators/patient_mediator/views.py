@@ -34,8 +34,8 @@ import http.client
 import base64
 
 
-@api_view(['GET', 'POST'])
-def getPatient(request):
+@api_view(['GET', 'POST', 'PATCH'])
+def getPatient(request, resource_id=None):
 	result = configview()
 	configurations = result.__dict__
 	authvars = configurations["data"]["openimis_user"]+":"+configurations["data"]["openimis_passkey"]#username:password-openhimclient:openhimclientPasskey
@@ -77,6 +77,27 @@ def getPatient(request):
 				status=status.HTTP_502_BAD_GATEWAY,
 			)
 		return Response(datac, status=response.status_code)
+	elif request.method == 'PATCH':
+		if not resource_id:
+			return Response(
+				{"error": "A Patient id is required in the URL to PATCH (e.g. /api/api_fhir_r4/Patient/<id>)"},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
+		data = json.dumps(request.data)
+		payload = data
+		headers = {
+			'Content-Type': "application/json",
+			'Authorization': auth_openimis
+			}
+		response = requests.request("PATCH", url + resource_id + "/", data=payload, headers=headers)
+		try:
+			datac = json.loads(response.text)
+		except ValueError:
+			return Response(
+				{"error": "Invalid response received from openIMIS"},
+				status=status.HTTP_502_BAD_GATEWAY,
+			)
+		return Response(datac, status=response.status_code)
 
 
 def registerPatientMediator():
@@ -106,7 +127,7 @@ def registerPatientMediator():
 	"defaultChannelConfig": [
 		{
 			"name": "openIMIS Fhir R4 Patient Mediator",
-			"urlPattern": "^/api/api_fhir_r4/Patient$",
+			"urlPattern": "^/api/api_fhir_r4/Patient(/[^/]+)?$",
 			"routes": [
 				{
 					"name": "openIMIS Fhir R4 Patient Mediator Route",
@@ -118,7 +139,7 @@ def registerPatientMediator():
 				}
 			],
 			"allow": ["admin"],
-			"methods": ["GET", "POST"],
+			"methods": ["GET", "POST", "PATCH"],
 			"type": "http"
 		}
 	],
