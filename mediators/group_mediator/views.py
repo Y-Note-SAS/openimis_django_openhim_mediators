@@ -43,7 +43,7 @@ def getGroup(request):
 	encodedBytes = base64.b64encode(authvars.encode("utf-8"))
 	encodedStr = str(encodedBytes, "utf-8")
 	auth_openimis = "Basic " + encodedStr
-	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/Group"
+	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/Group/"
 	# Query the upstream server via openHIM mediator port 8000
 	# Caution: To secure the endpoint with SSL certificate,FQDN is required 
 	if request.method == 'GET':
