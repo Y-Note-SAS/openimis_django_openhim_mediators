@@ -170,3 +170,67 @@ class GetGroupTests(TestCase):
 
         mock_request.assert_not_called()
         self.assertEqual(response.status_code, 405)
+
+    def test_patch_forwards_request_body_and_returns_upstream_data(self):
+        patch_body = {"resourceType": "Group", "active": False}
+        expected_payload = {"resourceType": "Group", "id": "123", "active": False}
+        with patch(
+            "group_mediator.views.requests.request",
+            return_value=fake_upstream_response(200, expected_payload),
+        ) as mock_request:
+            request = self.factory.patch(
+                "/api/api_fhir_r4/Group/123", patch_body, format="json"
+            )
+            response = getGroup(request, resource_id="123")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_payload)
+
+        mock_request.assert_called_once()
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "PATCH")
+        self.assertEqual(
+            args[1], "http://openimis.local:8080/api/api_fhir_r4/Group/123/"
+        )
+        self.assertEqual(json.loads(kwargs["data"]), patch_body)
+        self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
+        self.assertIn("Authorization", kwargs["headers"])
+
+    def test_patch_without_resource_id_returns_400(self):
+        with patch("group_mediator.views.requests.request") as mock_request:
+            request = self.factory.patch(
+                "/api/api_fhir_r4/Group", {"active": False}, format="json"
+            )
+            response = getGroup(request)
+
+        mock_request.assert_not_called()
+        self.assertEqual(response.status_code, 400)
+
+    def test_patch_propagates_upstream_error_payload(self):
+        error_payload = {"error": "invalid group patch"}
+        with patch(
+            "group_mediator.views.requests.request",
+            return_value=fake_upstream_response(400, error_payload),
+        ):
+            request = self.factory.patch(
+                "/api/api_fhir_r4/Group/123", {"active": False}, format="json"
+            )
+            response = getGroup(request, resource_id="123")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, error_payload)
+
+    def test_patch_returns_502_when_upstream_body_is_not_json(self):
+        broken_response = MagicMock()
+        broken_response.status_code = 200
+        broken_response.text = "<html>not json</html>"
+        with patch(
+            "group_mediator.views.requests.request",
+            return_value=broken_response,
+        ):
+            request = self.factory.patch(
+                "/api/api_fhir_r4/Group/123", {"active": False}, format="json"
+            )
+            response = getGroup(request, resource_id="123")
+
+        self.assertEqual(response.status_code, 502)
