@@ -1,7 +1,7 @@
 """
 Settings for openhim claim mediator developed in Django.
 
-The python-based claim mediator implements python-utils 
+The python-based claim mediator implements python-utils
 from https://github.com/de-laz/openhim-mediator-utils-py.git.
 
 For more information on this file, contact the Python developers
@@ -34,8 +34,20 @@ import http.client
 import base64
 
 
-@api_view(['GET', 'POST'])
-def getClaims(request):
+def _upstream_response(response):
+	"""Relaie la réponse d'openIMIS avec son code HTTP ; 502 si le corps n'est pas du JSON."""
+	try:
+		datac = json.loads(response.text)
+	except ValueError:
+		return Response(
+			{"error": "Invalid response received from openIMIS"},
+			status=status.HTTP_502_BAD_GATEWAY,
+		)
+	return Response(datac, status=response.status_code)
+
+
+@api_view(['GET', 'POST', 'PATCH'])
+def getClaims(request, resource_id=None):
 	result = configview()
 	configurations = result.__dict__
 	authvars = configurations["data"]["openimis_user"]+":"+configurations["data"]["openimis_passkey"]#username:password-openhimclient:openhimclientPasskey
@@ -43,27 +55,50 @@ def getClaims(request):
 	encodedBytes = base64.b64encode(authvars.encode("utf-8"))
 	encodedStr = str(encodedBytes, "utf-8")
 	auth_openimis = "Basic " + encodedStr
-	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/Claim"
+	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/Claim/"
 	# Query the upstream server via openHIM mediator port 8000
-	# Caution: To secure the endpoint with SSL certificate,FQDN is required 
+	# Caution: To secure the endpoint with SSL certificate,FQDN is required
 	if request.method == 'GET':
-		querystring = {"":""}
+		# GET par identifiant : /Claim/<id>/
+		if resource_id:
+			url = url + resource_id + "/"
+		# Transmet les paramètres de recherche FHIR tels quels (ex. ?patient=..., ?status=...)
+		querystring = request.query_params.dict()
 		payload = ""
-		headers = {'Authorization': auth_openimis} 
+		headers = {'Authorization': auth_openimis}
 		response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
-		datac = json.loads(response.text)
-		return Response(datac)
+		return _upstream_response(response)
+
 	elif request.method == 'POST':
-		querystring = {"":""}
-		data = json.dumps(request.data)
-		payload = data
+		# POST uniquement sur la collection, jamais sur une ressource précise
+		if resource_id:
+			return Response(
+				{"error": "POST is not allowed on a specific Claim"},
+				status=status.HTTP_405_METHOD_NOT_ALLOWED,
+			)
+		payload = json.dumps(request.data)
 		headers = {
 			'Content-Type': "application/json",
 			'Authorization': auth_openimis
 			}
-		response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-		datac = json.loads(response.text)
-		return Response(datac)
+		response = requests.request("POST", url, data=payload, headers=headers)
+		return _upstream_response(response)
+
+	elif request.method == 'PATCH':
+		# PATCH uniquement sur une ressource précise : /Claim/<id>/
+		if not resource_id:
+			return Response(
+				{"error": "PATCH requires a Claim identifier: /api/api_fhir_r4/Claim/<id>"},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
+		url = url + resource_id + "/"
+		payload = json.dumps(request.data)
+		headers = {
+			'Content-Type': "application/json",
+			'Authorization': auth_openimis
+			}
+		response = requests.request("PATCH", url, data=payload, headers=headers)
+		return _upstream_response(response)
 
 
 def registerClaimsMediator():
@@ -86,26 +121,27 @@ def registerClaimsMediator():
 
 	conf = {
 	"urn": "urn:mediator:openimis_fhir_r4_claim_mediator",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"name": "openIMIS Fhir R4 Claim Mediator",
 	"description": "openIMIS Fhir R4 Claim Mediator",
 
 	"defaultChannelConfig": [
 		{
 			"name": "openIMIS Fhir R4 Claim Mediator",
-			"urlPattern": "^/api/api_fhir_r4/Claim$",
+			# Liste (/Claim) et ressource précise (/Claim/<id>)
+			"urlPattern": "^/api/api_fhir_r4/Claim(/[^/]+)?/?$",
 			"routes": [
 				{
+					# Pas de "path" : openHIM transmet le chemin d'origine (avec l'identifiant)
 					"name": "openIMIS Fhir R4 Claim Mediator Route",
 					"host": configurations["data"]["mediator_url"],
-					"path": "/api/api_fhir_r4/Claim",
 					"port": configurations["data"]["mediator_port"],
 					"primary": True,
 					"type": "http"
 				}
 			],
 			"allow": ["admin"],
-			"methods": ["GET", "POST"],
+			"methods": ["GET", "POST", "PATCH"],
 			"type": "http"
 		}
 	],
