@@ -34,6 +34,18 @@ import http.client
 import base64
 
 
+def _upstream_response(response):
+	"""Relaie la réponse d'openIMIS avec son code HTTP ; 502 si le corps n'est pas du JSON."""
+	try:
+		datac = json.loads(response.text)
+	except ValueError:
+		return Response(
+			{"error": "Invalid response received from openIMIS"},
+			status=status.HTTP_502_BAD_GATEWAY,
+		)
+	return Response(datac, status=response.status_code)
+
+
 @api_view(['GET', 'POST'])
 def getClaimResponse(request, resource_id=None):
 	result = configview()
@@ -42,41 +54,33 @@ def getClaimResponse(request, resource_id=None):
 	encodedBytes = base64.b64encode(authvars.encode("utf-8"))
 	encodedStr = str(encodedBytes, "utf-8")
 	auth_openimis = "Basic " + encodedStr
-	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/ClaimResponse"
+	# Barre oblique finale : openIMIS attend /ClaimResponse/ et /ClaimResponse/<id>/
+	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/ClaimResponse/"
 
 	if request.method == 'GET':
-			# GET par identifiant : /ClaimResponse/<id>
-			if resource_id:
-					url = url + "/" + resource_id
-			# Transmet les paramètres de recherche FHIR (ex. ?request=Claim/<id>)
-			querystring = request.query_params.dict()
-			headers = {'Authorization': auth_openimis}
-			response = requests.request("GET", url, data="", headers=headers, params=querystring)
-			try:
-					datac = json.loads(response.text)
-			except ValueError:
-					return Response(
-							{"error": "Invalid response received from openIMIS"},
-							status=status.HTTP_502_BAD_GATEWAY,
-					)
-			return Response(datac, status=response.status_code)
+		# GET par identifiant : /ClaimResponse/<id>/
+		if resource_id:
+			url = url + resource_id + "/"
+		# Transmet les paramètres de recherche FHIR (ex. ?request=Claim/<id>)
+		querystring = request.query_params.dict()
+		headers = {'Authorization': auth_openimis}
+		response = requests.request("GET", url, data="", headers=headers, params=querystring)
+		return _upstream_response(response)
 
 	elif request.method == 'POST':
-			# POST inchangé ; interdit sur une URL avec identifiant
-			if resource_id:
-					return Response(
-							{"error": "POST is not allowed on a specific ClaimResponse"},
-							status=status.HTTP_405_METHOD_NOT_ALLOWED,
-					)
-			querystring = {"":""}
-			payload = json.dumps(request.data)
-			headers = {
-					'Content-Type': "application/json",
-					'Authorization': auth_openimis
-					}
-			response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-			datac = json.loads(response.text)
-			return Response(datac)
+		# POST uniquement sur la collection, interdit sur une URL avec identifiant
+		if resource_id:
+			return Response(
+				{"error": "POST is not allowed on a specific ClaimResponse"},
+				status=status.HTTP_405_METHOD_NOT_ALLOWED,
+			)
+		payload = json.dumps(request.data)
+		headers = {
+			'Content-Type': "application/json",
+			'Authorization': auth_openimis
+			}
+		response = requests.request("POST", url, data=payload, headers=headers)
+		return _upstream_response(response)
 
 
 def registerClaimResponseMediator():
