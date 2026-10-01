@@ -13,6 +13,9 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import logging
+import os
+
 from django.contrib import admin
 from django.urls import path
 
@@ -37,6 +40,8 @@ from claimresponse_mediator.views import registerClaimResponseMediator
 from coverageeligibilityrequest_mediator.views import registerCoverageEligibilityRequestMediator
 from location_mediator.views import registerLocationMediator
 
+logger = logging.getLogger(__name__)
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -54,15 +59,46 @@ urlpatterns = [
 
 ]
 
-#register Mediators - once -- uncomment after setting up variables
+# -----------------------------------------------------------------------------
+# Enregistrement des médiateurs auprès d'openHIM au démarrage
+# -----------------------------------------------------------------------------
+# Activé uniquement si la variable d'environnement OPENHIM_AUTO_REGISTER vaut
+# "true" (positionnée dans docker-compose.yml pour les déploiements).
+# Désactivé par défaut : le chargement de ce fichier par "manage.py test",
+# "migrate", etc. ne doit pas contacter openHIM ni dépendre de la configuration.
+
+MEDIATOR_REGISTRATIONS = (
+    registerClaimsMediator,
+    registerCoverageMediator,
+    registerOrganisationMediator,
+    registerGroupMediator,
+    registerPatientMediator,
+    registerContractMediator,
+    registerClaimResponseMediator,
+    registerCoverageEligibilityRequestMediator,
+    registerLocationMediator,
+)
 
 
-registerClaimsMediator()
-registerCoverageMediator()
-registerOrganisationMediator()
-registerGroupMediator()
-registerPatientMediator()
-registerContractMediator()
-registerClaimResponseMediator()
-registerCoverageEligibilityRequestMediator()
-registerLocationMediator()
+def register_mediators(registrations=MEDIATOR_REGISTRATIONS):
+    """Enregistre chaque médiateur auprès d'openHIM.
+
+    L'échec d'un enregistrement (openHIM injoignable, configuration absente...)
+    est journalisé sans empêcher les autres enregistrements ni le démarrage
+    de l'application.
+    """
+    for register in registrations:
+        try:
+            register()
+        except Exception:
+            logger.exception(
+                "Échec de l'enregistrement auprès d'openHIM : %s", register.__name__
+            )
+
+
+def auto_register_enabled():
+    return os.environ.get("OPENHIM_AUTO_REGISTER", "false").strip().lower() == "true"
+
+
+if auto_register_enabled():
+    register_mediators()
