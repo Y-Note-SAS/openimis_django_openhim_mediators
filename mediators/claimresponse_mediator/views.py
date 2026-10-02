@@ -34,36 +34,53 @@ import http.client
 import base64
 
 
+def _upstream_response(response):
+	"""Relaie la réponse d'openIMIS avec son code HTTP ; 502 si le corps n'est pas du JSON."""
+	try:
+		datac = json.loads(response.text)
+	except ValueError:
+		return Response(
+			{"error": "Invalid response received from openIMIS"},
+			status=status.HTTP_502_BAD_GATEWAY,
+		)
+	return Response(datac, status=response.status_code)
+
+
 @api_view(['GET', 'POST'])
-def getClaimResponse(request):
+def getClaimResponse(request, resource_id=None):
 	result = configview()
 	configurations = result.__dict__
-	authvars = configurations["data"]["openimis_user"]+":"+configurations["data"]["openimis_passkey"]#username:password-openhimclient:openhimclientPasskey
-	# Standard Base64 Encoding
+	authvars = configurations["data"]["openimis_user"]+":"+configurations["data"]["openimis_passkey"]
 	encodedBytes = base64.b64encode(authvars.encode("utf-8"))
 	encodedStr = str(encodedBytes, "utf-8")
 	auth_openimis = "Basic " + encodedStr
-	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/ClaimResponse"
-	# Query the upstream server via openHIM mediator port 8000
-	# Caution: To secure the endpoint with SSL certificate,FQDN is required 
+	# Barre oblique finale : openIMIS attend /ClaimResponse/ et /ClaimResponse/<id>/
+	url = configurations["data"]["openimis_url"]+":"+str(configurations["data"]["openimis_port"])+"/api/api_fhir_r4/ClaimResponse/"
+
 	if request.method == 'GET':
-		querystring = {"":""}
-		payload = ""
-		headers = {'Authorization': auth_openimis} 
-		response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
-		datac = json.loads(response.text)
-		return Response(datac)
+		# GET par identifiant : /ClaimResponse/<id>/
+		if resource_id:
+			url = url + resource_id + "/"
+		# Transmet les paramètres de recherche FHIR (ex. ?request=Claim/<id>)
+		querystring = request.query_params.dict()
+		headers = {'Authorization': auth_openimis}
+		response = requests.request("GET", url, data="", headers=headers, params=querystring)
+		return _upstream_response(response)
+
 	elif request.method == 'POST':
-		querystring = {"":""}
-		data = json.dumps(request.data)
-		payload = data
+		# POST uniquement sur la collection, interdit sur une URL avec identifiant
+		if resource_id:
+			return Response(
+				{"error": "POST is not allowed on a specific ClaimResponse"},
+				status=status.HTTP_405_METHOD_NOT_ALLOWED,
+			)
+		payload = json.dumps(request.data)
 		headers = {
 			'Content-Type': "application/json",
 			'Authorization': auth_openimis
 			}
-		response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-		datac = json.loads(response.text)
-		return Response(datac)
+		response = requests.request("POST", url, data=payload, headers=headers)
+		return _upstream_response(response)
 
 
 def registerClaimResponseMediator():
@@ -86,19 +103,18 @@ def registerClaimResponseMediator():
 
 	conf = {
 	"urn": "urn:mediator:python_fhir_r4_ClaimResponse_mediator",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"name": "Python Fhir R4 ClaimResponse Mediator",
 	"description": "Python Fhir R4 ClaimResponse Mediator",
 
 	"defaultChannelConfig": [
 		{
 			"name": "Python Fhir R4 ClaimResponse Mediator",
-			"urlPattern": "^/api/api_fhir_r4/ClaimResponse$",
+			"urlPattern": "^/api/api_fhir_r4/ClaimResponse(/[^/]+)?/?$",
 			"routes": [
 				{
 					"name": "Python Fhir R4 ClaimResponse Mediator Route",
 					"host": configurations["data"]["mediator_url"],
-					"path": "/api/api_fhir_r4/ClaimResponse",
 					"port": configurations["data"]["mediator_port"],
 					"primary": True,
 					"type": "http"

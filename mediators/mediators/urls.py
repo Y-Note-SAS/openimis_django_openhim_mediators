@@ -54,6 +54,7 @@ urlpatterns = [
     path('api/api_fhir_r4/Group/<str:resource_id>', getGroup),
     path('api/api_fhir_r4/Contract', getContract),
     path('api/api_fhir_r4/ClaimResponse', getClaimResponse),
+    path('api/api_fhir_r4/ClaimResponse/<str:resource_id>', getClaimResponse),
     path('api/api_fhir_r4/CoverageEligibilityRequest', getCoverageEligibilityRequest),
     path('api/api_fhir_r4/Location', getLocation),
 
