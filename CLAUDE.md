@@ -13,6 +13,6 @@ Single app: `... python manage.py test patient_mediator`. CI runs the same comma
 
 ## Gotchas
 
-- `mediators/mediators/urls.py` used to call `register*Mediator()` at import time, which hits the real DB/network as a side effect of loading URLconf — breaks `manage.py test`/`migrate`. These calls are now commented out (matches README step 7); keep them commented except for real deployments with config set.
+- `mediators/mediators/urls.py` registers the mediators with openHIM at import time **only when `OPENHIM_AUTO_REGISTER=true`** (set in `docker-compose.yml`). It is off by default so `manage.py test`/`migrate` (and CI) never hit the DB/network while loading the URLconf. Each registration is wrapped in try/except: one failure is logged and does not block the others or the app startup. Covered by `mediators/mediators/tests.py`.
 - All 8 mediator apps (`claim_mediator`, `coverage_mediator`, `organisation_mediator`, `group_mediator`, `patient_mediator`, `contract_mediator`, `claimresponse_mediator`, `coverageeligibilityrequest_mediator`) have near-identical copy-pasted `views.py`. A bug fixed in one (e.g. query params dropped, status code not propagated, unguarded `json.loads`) likely exists in all the others — check before assuming it's isolated.
 - `overview.views.configview()` returns a DRF `Response`; existing code reads it via `result.__dict__["data"]` instead of `.data` — unusual but intentional-looking pattern repeated everywhere, not a typo to "fix" in isolation.

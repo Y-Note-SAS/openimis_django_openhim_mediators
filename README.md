@@ -29,6 +29,6 @@ To run the mediator:
     `docker-compose run mediators python manage.py  createsuperuser`
     
 6. Login to the admin and update config variables
-7. Go to the /mediators/urls.py file and uncomment the last block of code
+7. Make sure `OPENHIM_AUTO_REGISTER` is set to `"true"` in `docker-compose.yml` (already the case by default): mediators then register automatically with openHIM at startup
 8. Run `docker-compose up`
 9. Confirm mediators have been successfully registered in the openhim console

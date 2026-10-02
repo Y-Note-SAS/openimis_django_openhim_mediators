@@ -9,4 +9,7 @@ services:
     command: >
       sh -c "python manage.py runserver 0.0.0.0:8002"
     container_name: mediators-test
+    environment:
+      # Enregistre automatiquement les médiateurs auprès d'openHIM au démarrage
+      OPENHIM_AUTO_REGISTER: "true"
     restart: unless-stopped
