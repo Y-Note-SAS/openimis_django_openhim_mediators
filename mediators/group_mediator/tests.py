@@ -42,7 +42,7 @@ class GetGroupTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.config_patcher = patch(
-            "group_mediator.views.configview",
+            "overview.fhir_proxy.configview",
             return_value=FakeConfigResult(FAKE_CONFIG_DATA),
         )
         self.mock_configview = self.config_patcher.start()
@@ -51,7 +51,7 @@ class GetGroupTests(TestCase):
     def test_get_forwards_request_and_returns_upstream_data(self):
         expected_payload = {"resourceType": "Bundle", "entry": []}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(200, expected_payload),
         ) as mock_request:
             request = self.factory.get("/api/api_fhir_r4/Group")
@@ -73,7 +73,7 @@ class GetGroupTests(TestCase):
     def test_get_search_by_identifier_forwards_query_params(self):
         expected_payload = {"resourceType": "Bundle", "entry": [{"id": "123"}]}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(200, expected_payload),
         ) as mock_request:
             request = self.factory.get(
@@ -91,7 +91,7 @@ class GetGroupTests(TestCase):
         posted_group = {"resourceType": "Group", "id": "123"}
         expected_payload = {"resourceType": "Group", "id": "123", "created": True}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(201, expected_payload),
         ) as mock_request:
             request = self.factory.post(
@@ -112,7 +112,7 @@ class GetGroupTests(TestCase):
     def test_post_propagates_upstream_error_payload(self):
         error_payload = {"error": "invalid group"}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(400, error_payload),
         ):
             request = self.factory.post(
@@ -128,7 +128,7 @@ class GetGroupTests(TestCase):
         broken_response.status_code = 201
         broken_response.text = "<html>not json</html>"
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=broken_response,
         ):
             request = self.factory.post(
@@ -141,7 +141,7 @@ class GetGroupTests(TestCase):
     def test_get_propagates_upstream_error_payload(self):
         error_payload = {"error": "not found"}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(404, error_payload),
         ):
             request = self.factory.get("/api/api_fhir_r4/Group")
@@ -155,7 +155,7 @@ class GetGroupTests(TestCase):
         broken_response.status_code = 200
         broken_response.text = "<html>not json</html>"
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=broken_response,
         ):
             request = self.factory.get("/api/api_fhir_r4/Group")
@@ -164,7 +164,7 @@ class GetGroupTests(TestCase):
         self.assertEqual(response.status_code, 502)
 
     def test_unsupported_method_returns_405(self):
-        with patch("group_mediator.views.requests.request") as mock_request:
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
             request = self.factory.delete("/api/api_fhir_r4/Group")
             response = getGroup(request)
 
@@ -175,7 +175,7 @@ class GetGroupTests(TestCase):
         patch_body = {"resourceType": "Group", "active": False}
         expected_payload = {"resourceType": "Group", "id": "123", "active": False}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(200, expected_payload),
         ) as mock_request:
             request = self.factory.patch(
@@ -197,7 +197,7 @@ class GetGroupTests(TestCase):
         self.assertIn("Authorization", kwargs["headers"])
 
     def test_patch_without_resource_id_returns_400(self):
-        with patch("group_mediator.views.requests.request") as mock_request:
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
             request = self.factory.patch(
                 "/api/api_fhir_r4/Group", {"active": False}, format="json"
             )
@@ -209,7 +209,7 @@ class GetGroupTests(TestCase):
     def test_patch_propagates_upstream_error_payload(self):
         error_payload = {"error": "invalid group patch"}
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(400, error_payload),
         ):
             request = self.factory.patch(
@@ -225,7 +225,7 @@ class GetGroupTests(TestCase):
         broken_response.status_code = 200
         broken_response.text = "<html>not json</html>"
         with patch(
-            "group_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=broken_response,
         ):
             request = self.factory.patch(

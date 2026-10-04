@@ -169,3 +169,39 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
         mocks = self._reload_urls_with_mocked_registrations("true")
         for register in mocks:
             register.assert_called_once_with()
+
+
+class MediatorMetadataConsistencyTests(SimpleTestCase):
+    """Tous les médiateurs sont enregistrés avec le même schéma de nom et la même version."""
+
+    def test_every_mediator_uses_common_name_and_version(self):
+        from overview.fhir_proxy import MEDIATOR_VERSION
+
+        resources = {
+            "registerClaimsMediator": "Claim",
+            "registerCoverageMediator": "Coverage",
+            "registerOrganisationMediator": "Organisation",
+            "registerGroupMediator": "Group",
+            "registerPatientMediator": "Patient",
+            "registerContractMediator": "Contract",
+            "registerClaimResponseMediator": "ClaimResponse",
+            "registerCoverageEligibilityRequestMediator": "CoverageEligibilityRequest",
+            "registerLocationMediator": "Location",
+        }
+        for register in urls.MEDIATOR_REGISTRATIONS:
+            with self.subTest(register=register.__name__):
+                with patch("overview.fhir_proxy.configview") as cfg, patch(
+                    "overview.fhir_proxy.Main"
+                ) as main:
+                    cfg.return_value.__dict__["data"] = {
+                        k: "x" for k in (
+                            "openhim_url", "openhim_port", "openhim_user",
+                            "openhim_passkey", "mediator_url", "mediator_port",
+                        )
+                    }
+                    register()
+                conf = main.call_args.kwargs["conf"]
+                resource = resources[register.__name__]
+                self.assertEqual(conf["name"], f"openIMIS Fhir R4 {resource} Mediator")
+                self.assertEqual(conf["description"], conf["name"])
+                self.assertEqual(conf["version"], MEDIATOR_VERSION)
