@@ -38,23 +38,35 @@ def getCoverageEligibilityRequest(request):
 	# Query the upstream server via openHIM mediator port 8000
 	# Caution: To secure the endpoint with SSL certificate,FQDN is required 
 	if request.method == 'GET':
-		querystring = {"":""}
+		# Forward incoming FHIR search params as-is (e.g. ?identifier=..., ?name=...)
+		querystring = request.query_params.dict()
 		payload = ""
-		headers = {'Authorization': auth_openimis} 
+		headers = {'Authorization': auth_openimis}
 		response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
-		datac = json.loads(response.text)
-		return Response(datac)
+		try:
+			datac = json.loads(response.text)
+		except ValueError:
+			return Response(
+				{"error": "Invalid response received from openIMIS"},
+				status=status.HTTP_502_BAD_GATEWAY,
+			)
+		return Response(datac, status=response.status_code)
 	elif request.method == 'POST':
-		querystring = {"":""}
 		data = json.dumps(request.data)
 		payload = data
 		headers = {
 			'Content-Type': "application/json",
 			'Authorization': auth_openimis
 			}
-		response = requests.request("POST", url, data=payload, headers=headers, params=querystring)
-		datac = json.loads(response.text)
-		return Response(datac)
+		response = requests.request("POST", url, data=payload, headers=headers)
+		try:
+			datac = json.loads(response.text)
+		except ValueError:
+			return Response(
+				{"error": "Invalid response received from openIMIS"},
+				status=status.HTTP_502_BAD_GATEWAY,
+			)
+		return Response(datac, status=response.status_code)
 
 
 def registerCoverageEligibilityRequestMediator():
