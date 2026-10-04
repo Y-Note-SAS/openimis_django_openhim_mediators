@@ -11,6 +11,8 @@ docker rmi mediators-test
 ```
 Single app: `... python manage.py test patient_mediator`. CI runs the same command from `mediators/` on every push/PR (`.github/workflows/tests.yml`).
 
+Coverage (config in `mediators/.coveragerc`): from `mediators/`, `coverage run manage.py test && coverage report`. CI fails under 95% and uploads to Codecov (needs the `CODECOV_TOKEN` repo secret for the README badge to update).
+
 ## Gotchas
 
 - `mediators/mediators/urls.py` registers the mediators with openHIM at import time **only when `OPENHIM_AUTO_REGISTER=true`** (set in `docker-compose.yml`). It is off by default so `manage.py test`/`migrate` (and CI) never hit the DB/network while loading the URLconf. Each registration is wrapped in try/except: one failure is logged and does not block the others or the app startup. Covered by `mediators/mediators/tests.py`.
