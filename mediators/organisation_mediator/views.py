@@ -18,8 +18,5 @@ def registerOrganisationMediator():
 	register_fhir_mediator(
 		"Organisation",
 		urn="urn:mediator:python_fhir_r4_Organisation_mediator",
-		version="1.0.1",
-		name="Python Fhir R4 Organisation Mediator",
-		description="Python Fhir R4 Organisation Mediator",
 		methods=("GET", "POST"),
 	)

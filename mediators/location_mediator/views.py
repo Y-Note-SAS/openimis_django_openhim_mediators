@@ -18,8 +18,5 @@ def registerLocationMediator():
 	register_fhir_mediator(
 		"Location",
 		urn="urn:mediator:python_fhir_r4_Location_mediator",
-		version="1.0.0",
-		name="openIMIS Fhir R4 Location Mediator",
-		description="openIMIS Fhir R4 Location Mediator",
 		methods=("GET",),
 	)

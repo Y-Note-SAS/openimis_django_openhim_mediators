@@ -18,9 +18,6 @@ def registerPatientMediator():
 	register_fhir_mediator(
 		"Patient",
 		urn="urn:mediator:python_fhir_r4_Patient_mediator",
-		version="1.0.2",
-		name="openIMIS Fhir R4 Patient Mediator",
-		description="openIMIS Fhir R4 Patient Mediator",
 		methods=("GET", "POST", "PATCH"),
 		url_pattern="^/api/api_fhir_r4/Patient(/[^/]+)?$",
 	)

@@ -18,9 +18,6 @@ def registerGroupMediator():
 	register_fhir_mediator(
 		"Group",
 		urn="urn:mediator:openimis_fhir_r4_Group_mediator",
-		version="1.0.2",
-		name="openIMIS Fhir R4 Group Mediator",
-		description="openIMIS Fhir R4 Group Mediator",
 		methods=("GET", "POST", "PATCH"),
 		url_pattern="^/api/api_fhir_r4/Group(/[^/]+)?$",
 	)

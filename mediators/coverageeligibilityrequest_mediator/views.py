@@ -18,8 +18,5 @@ def registerCoverageEligibilityRequestMediator():
 	register_fhir_mediator(
 		"CoverageEligibilityRequest",
 		urn="urn:mediator:python_fhir_r4_CoverageEligibilityRequest_mediator",
-		version="1.0.1",
-		name="Python Fhir R4 CoverageEligibilityRequest Mediator",
-		description="Python Fhir R4 CoverageEligibilityRequest Mediator",
 		methods=("GET", "POST"),
 	)

@@ -1,5 +1,6 @@
 from django.test import TestCase
 
+from overview.fhir_proxy import MEDIATOR_VERSION
 from overview.models import configs
 from overview.views import configview
 
@@ -63,7 +64,7 @@ class RegisterFhirMediatorTests(TestCase):
         ) as main:
             cfg.return_value.__dict__["data"] = CONFIG_FIELDS
             register_fhir_mediator(
-                "Claim", urn="urn:x", version="1.0.0", name="N", description="D", **kwargs
+                "Claim", urn="urn:x", **kwargs
             )
         return main
 
@@ -81,6 +82,10 @@ class RegisterFhirMediatorTests(TestCase):
         self.assertEqual(channel["routes"][0]["path"], "/api/api_fhir_r4/Claim")
         self.assertEqual(channel["routes"][0]["host"], "mediator.local")
         self.assertEqual(conf["urn"], "urn:x")
+        self.assertEqual(conf["version"], MEDIATOR_VERSION)
+        self.assertEqual(conf["name"], "openIMIS Fhir R4 Claim Mediator")
+        self.assertEqual(conf["description"], conf["name"])
+        self.assertEqual(channel["name"], conf["name"])
 
     def test_custom_methods_and_url_pattern(self):
         conf = self._register(

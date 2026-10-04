@@ -18,8 +18,5 @@ def registerCoverageMediator():
 	register_fhir_mediator(
 		"Coverage",
 		urn="urn:mediator:python_fhir_r4_Coverage_mediator",
-		version="1.0.1",
-		name="Python Fhir R4 Coverage Mediator",
-		description="Python Fhir R4 Coverage Mediator",
 		methods=("GET", "POST"),
 	)

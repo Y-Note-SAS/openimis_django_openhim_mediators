@@ -18,8 +18,5 @@ def registerClaimsMediator():
 	register_fhir_mediator(
 		"Claim",
 		urn="urn:mediator:openimis_fhir_r4_claim_mediator",
-		version="1.0.2",
-		name="openIMIS Fhir R4 Claim Mediator",
-		description="openIMIS Fhir R4 Claim Mediator",
 		methods=("GET", "POST"),
 	)

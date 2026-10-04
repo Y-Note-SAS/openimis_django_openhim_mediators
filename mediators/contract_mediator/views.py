@@ -18,8 +18,5 @@ def registerContractMediator():
 	register_fhir_mediator(
 		"Contract",
 		urn="urn:mediator:python_fhir_r4_Contract_mediator",
-		version="1.0.1",
-		name="Python Fhir R4 Contract Mediator",
-		description="Python Fhir R4 Contract Mediator",
 		methods=("GET", "POST"),
 	)

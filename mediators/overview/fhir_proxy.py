@@ -18,6 +18,9 @@ from openhim_mediator_utils.main import Main
 from overview.views import configview
 
 API_PREFIX = "/api/api_fhir_r4/"
+# Single version for all mediators; bump it whenever a registration changes so
+# openHIM picks up the new configuration.
+MEDIATOR_VERSION = "1.0.3"
 
 
 def _openimis_auth_header(data):
@@ -77,9 +80,13 @@ def proxy_fhir_request(request, resource, resource_id=None, trailing_slash=False
 		return _forward("PATCH", url.rstrip("/") + "/" + resource_id + "/", headers, data=body)
 
 
-def register_fhir_mediator(resource, urn, version, name, description,
-		methods=("GET", "POST"), url_pattern=None):
-	"""Register the mediator of ``resource`` with openHIM and start its heartbeat."""
+def register_fhir_mediator(resource, urn, methods=("GET", "POST"), url_pattern=None):
+	"""Register the mediator of ``resource`` with openHIM and start its heartbeat.
+
+	Name and description follow "openIMIS Fhir R4 <resource> Mediator" and the
+	version is MEDIATOR_VERSION for every mediator.
+	"""
+	name = "openIMIS Fhir R4 %s Mediator" % resource
 	data = configview().__dict__["data"]
 	path = API_PREFIX + resource
 
@@ -94,9 +101,9 @@ def register_fhir_mediator(resource, urn, version, name, description,
 
 	conf = {
 		"urn": urn,
-		"version": version,
+		"version": MEDIATOR_VERSION,
 		"name": name,
-		"description": description,
+		"description": name,
 		"defaultChannelConfig": [
 			{
 				"name": name,

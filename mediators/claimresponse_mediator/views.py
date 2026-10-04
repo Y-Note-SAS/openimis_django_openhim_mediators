@@ -18,8 +18,5 @@ def registerClaimResponseMediator():
 	register_fhir_mediator(
 		"ClaimResponse",
 		urn="urn:mediator:python_fhir_r4_ClaimResponse_mediator",
-		version="1.0.1",
-		name="Python Fhir R4 ClaimResponse Mediator",
-		description="Python Fhir R4 ClaimResponse Mediator",
 		methods=("GET", "POST"),
 	)
