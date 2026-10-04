@@ -42,7 +42,7 @@ class getOrganisationTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         patcher = patch(
-            "organisation_mediator.views.configview",
+            "overview.fhir_proxy.configview",
             return_value=FakeConfigResult(FAKE_CONFIG_DATA),
         )
         patcher.start()
@@ -50,7 +50,7 @@ class getOrganisationTests(TestCase):
 
     def _call(self, method, upstream, body=None, query=None):
         with patch(
-            "organisation_mediator.views.requests.request", return_value=upstream
+            "overview.fhir_proxy.requests.request", return_value=upstream
         ) as mock_request:
             if method == "get":
                 request = self.factory.get(PATH, query or {})
@@ -120,7 +120,7 @@ class getOrganisationTests(TestCase):
         self.assertEqual(response.status_code, 502)
 
     def test_unsupported_method_returns_405(self):
-        with patch("organisation_mediator.views.requests.request") as mock_request:
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
             response = getOrganisation(self.factory.delete(PATH))
         mock_request.assert_not_called()
         self.assertEqual(response.status_code, 405)

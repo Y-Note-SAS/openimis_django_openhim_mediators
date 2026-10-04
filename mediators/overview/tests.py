@@ -49,3 +49,43 @@ class ConfigviewTests(TestCase):
         response = configview()
 
         self.assertIsNone(response.data.get("id"))
+
+
+class RegisterFhirMediatorTests(TestCase):
+    """register_fhir_mediator builds the openHIM conf and starts the heartbeat."""
+
+    def _register(self, **kwargs):
+        from unittest.mock import patch
+        from overview.fhir_proxy import register_fhir_mediator
+
+        with patch("overview.fhir_proxy.configview") as cfg, patch(
+            "overview.fhir_proxy.Main"
+        ) as main:
+            cfg.return_value.__dict__["data"] = CONFIG_FIELDS
+            register_fhir_mediator(
+                "Claim", urn="urn:x", version="1.0.0", name="N", description="D", **kwargs
+            )
+        return main
+
+    def test_registers_and_activates_heartbeat(self):
+        main = self._register()
+        instance = main.return_value
+        instance.register_mediator.assert_called_once_with()
+        instance.activate_heartbeat.assert_called_once_with()
+
+    def test_builds_default_conf_from_resource(self):
+        conf = self._register().call_args.kwargs["conf"]
+        channel = conf["defaultChannelConfig"][0]
+        self.assertEqual(channel["urlPattern"], "^/api/api_fhir_r4/Claim$")
+        self.assertEqual(channel["methods"], ["GET", "POST"])
+        self.assertEqual(channel["routes"][0]["path"], "/api/api_fhir_r4/Claim")
+        self.assertEqual(channel["routes"][0]["host"], "mediator.local")
+        self.assertEqual(conf["urn"], "urn:x")
+
+    def test_custom_methods_and_url_pattern(self):
+        conf = self._register(
+            methods=("GET", "PATCH"), url_pattern="^/p(/[^/]+)?$"
+        ).call_args.kwargs["conf"]
+        channel = conf["defaultChannelConfig"][0]
+        self.assertEqual(channel["urlPattern"], "^/p(/[^/]+)?$")
+        self.assertEqual(channel["methods"], ["GET", "PATCH"])

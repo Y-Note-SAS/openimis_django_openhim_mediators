@@ -42,7 +42,7 @@ class GetLocationTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.config_patcher = patch(
-            "location_mediator.views.configview",
+            "overview.fhir_proxy.configview",
             return_value=FakeConfigResult(FAKE_CONFIG_DATA),
         )
         self.mock_configview = self.config_patcher.start()
@@ -51,7 +51,7 @@ class GetLocationTests(TestCase):
     def test_get_forwards_request_and_returns_upstream_data(self):
         expected_payload = {"resourceType": "Bundle", "entry": []}
         with patch(
-            "location_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(200, expected_payload),
         ) as mock_request:
             request = self.factory.get("/api/api_fhir_r4/Location")
@@ -73,7 +73,7 @@ class GetLocationTests(TestCase):
     def test_get_search_by_identifier_forwards_query_params(self):
         expected_payload = {"resourceType": "Bundle", "entry": [{"id": "123"}]}
         with patch(
-            "location_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(200, expected_payload),
         ) as mock_request:
             request = self.factory.get(
@@ -90,7 +90,7 @@ class GetLocationTests(TestCase):
     def test_get_propagates_upstream_error_payload(self):
         error_payload = {"error": "not found"}
         with patch(
-            "location_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=fake_upstream_response(404, error_payload),
         ):
             request = self.factory.get("/api/api_fhir_r4/Location")
@@ -104,7 +104,7 @@ class GetLocationTests(TestCase):
         broken_response.status_code = 200
         broken_response.text = "<html>not json</html>"
         with patch(
-            "location_mediator.views.requests.request",
+            "overview.fhir_proxy.requests.request",
             return_value=broken_response,
         ):
             request = self.factory.get("/api/api_fhir_r4/Location")
@@ -113,7 +113,7 @@ class GetLocationTests(TestCase):
         self.assertEqual(response.status_code, 502)
 
     def test_unsupported_method_returns_405(self):
-        with patch("location_mediator.views.requests.request") as mock_request:
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
             request = self.factory.post("/api/api_fhir_r4/Location", {})
             response = getLocation(request)
 
