@@ -59,7 +59,6 @@ urlpatterns = [
     path('api/api_fhir_r4/CoverageEligibilityRequest', getCoverageEligibilityRequest),
     path('api/api_fhir_r4/Location', getLocation),
     path('api/api_fhir_r4/CodeSystem/diagnosis', getDiagnosis),
-    path('api/api_fhir_r4/CodeSystem/diagnosis/', getDiagnosis),
     path('api/api_fhir_r4/CodeSystem/diagnosis/<str:code>', getDiagnosis),
 
 ]
