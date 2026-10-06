@@ -82,7 +82,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
         self.assertIn("registerFailing", logs.output[0])
 
     def test_all_mediators_are_registered(self):
-        """``MEDIATOR_REGISTRATIONS`` contient les 9 médiateurs, dans l'ordre attendu.
+        """``MEDIATOR_REGISTRATIONS`` contient les 10 médiateurs, dans l'ordre attendu.
 
         Protège contre l'oubli d'un médiateur lors d'une modification de ``urls.py`` :
         tout ajout ou retrait doit être reporté dans ce test.
@@ -100,13 +100,14 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
                 "registerClaimResponseMediator",
                 "registerCoverageEligibilityRequestMediator",
                 "registerLocationMediator",
+                "registerDiagnosisMediator",
             ],
         )
 
     def _reload_urls_with_mocked_registrations(self, env_value):
         """Recharge ``urls.py`` avec des fonctions d'enregistrement simulées.
 
-        Remplace les 9 fonctions ``register*Mediator`` dans leurs modules
+        Remplace les 10 fonctions ``register*Mediator`` dans leurs modules
         d'origine, puis recharge ``urls.py`` avec ``OPENHIM_AUTO_REGISTER``
         positionnée à ``env_value``, ce qui ré-exécute le bloc de démarrage.
 
@@ -118,7 +119,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             env_value: valeur donnée à ``OPENHIM_AUTO_REGISTER`` pendant le rechargement.
 
         Returns:
-            La liste des 9 simulations, dans l'ordre de ``MEDIATOR_REGISTRATIONS``,
+            La liste des 10 simulations, dans l'ordre de ``MEDIATOR_REGISTRATIONS``,
             pour vérifier lesquelles ont été appelées.
         """
         targets = [
@@ -131,6 +132,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             ("claimresponse_mediator.views", "registerClaimResponseMediator"),
             ("coverageeligibilityrequest_mediator.views", "registerCoverageEligibilityRequestMediator"),
             ("location_mediator.views", "registerLocationMediator"),
+            ("diagnosis_mediator.views", "registerDiagnosisMediator"),
         ]
         mocks = []
         patchers = []
@@ -160,7 +162,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             register.assert_not_called()
 
     def test_loading_urls_registers_every_mediator_when_enabled(self):
-        """Charger ``urls.py`` avec l'enregistrement activé enregistre les 9 médiateurs.
+        """Charger ``urls.py`` avec l'enregistrement activé enregistre les 10 médiateurs.
 
         Reproduit le démarrage sur le serveur (``OPENHIM_AUTO_REGISTER=true``
         dans ``docker-compose.yml``) : chaque médiateur doit être enregistré
