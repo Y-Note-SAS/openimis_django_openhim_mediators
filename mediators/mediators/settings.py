@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'coverageeligibilityrequest_mediator',
     'claimresponse_mediator',
     'location_mediator',
+    'diagnosis_mediator',
+    'activitydefinition_mediator',
 ]
 
 MIDDLEWARE = [
