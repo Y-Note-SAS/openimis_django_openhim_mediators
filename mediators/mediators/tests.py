@@ -101,6 +101,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
                 "registerCoverageEligibilityRequestMediator",
                 "registerLocationMediator",
                 "registerDiagnosisMediator",
+                "registerActivityDefinitionMediator",
             ],
         )
 
@@ -133,6 +134,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             ("coverageeligibilityrequest_mediator.views", "registerCoverageEligibilityRequestMediator"),
             ("location_mediator.views", "registerLocationMediator"),
             ("diagnosis_mediator.views", "registerDiagnosisMediator"),
+            ("activitydefinition_mediator.views", "registerActivityDefinitionMediator"),
         ]
         mocks = []
         patchers = []
