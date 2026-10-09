@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'group_mediator',
     'patient_mediator',
     'contract_mediator',
+    'diagnosis_mediator',
     'overview',
     'coverageeligibilityrequest_mediator',
     'claimresponse_mediator',
