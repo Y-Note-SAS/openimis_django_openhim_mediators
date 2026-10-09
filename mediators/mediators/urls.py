@@ -47,6 +47,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/api_fhir_r4/Claim', getClaims),
     path('api/api_fhir_r4/Coverage', getCoverage),
+    path('api/api_fhir_r4/Coverage/<str:resource_id>', getCoverage),
     path('api/api_fhir_r4/Organisation', getOrganisation),
     path('api/api_fhir_r4/Patient', getPatient),
     path('api/api_fhir_r4/Patient/<str:resource_id>', getPatient),
