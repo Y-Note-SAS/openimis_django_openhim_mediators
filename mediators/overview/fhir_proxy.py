@@ -48,7 +48,8 @@ def _forward(method, url, headers, **kwargs):
 def proxy_fhir_request(request, resource, resource_id=None, trailing_slash=False):
 	"""Forward a GET/POST/PATCH on a FHIR ``resource`` to openIMIS.
 
-	GET forwards the incoming query params (FHIR search); POST/PATCH forward the
+	GET forwards the incoming query params (FHIR search); with ``resource_id`` it
+	reads that single resource (``<resource>/<id>/``). POST/PATCH forward the
 	JSON body. PATCH requires ``resource_id`` and returns 400 without it. Methods
 	a view does not allow are rejected earlier by ``@api_view`` (405).
 
@@ -64,6 +65,8 @@ def proxy_fhir_request(request, resource, resource_id=None, trailing_slash=False
 	)
 
 	if request.method == 'GET':
+		if resource_id:
+			url = url.rstrip("/") + "/" + resource_id + "/"
 		return _forward("GET", url, auth, data="", params=request.query_params.dict())
 
 	headers = dict(auth, **{"Content-Type": "application/json"})
@@ -80,13 +83,20 @@ def proxy_fhir_request(request, resource, resource_id=None, trailing_slash=False
 		return _forward("PATCH", url.rstrip("/") + "/" + resource_id + "/", headers, data=body)
 
 
-def register_fhir_mediator(resource, urn, methods=("GET", "POST"), url_pattern=None):
+def register_fhir_mediator(resource, urn, methods=("GET", "POST"), url_pattern=None,
+		display_name=None):
 	"""Register the mediator of ``resource`` with openHIM and start its heartbeat.
 
-	Name and description follow "openIMIS Fhir R4 <resource> Mediator" and the
-	version is MEDIATOR_VERSION for every mediator.
+	Name and description follow "openIMIS Fhir R4 <display_name> Mediator"
+	(``display_name`` defaults to ``resource``, e.g. "Diagnosis" for the
+	"CodeSystem/diagnosis" resource) and the version is MEDIATOR_VERSION for
+	every mediator.
+
+	With a custom ``url_pattern`` (typically one accepting an id, such as
+	``^/api/api_fhir_r4/Patient(/[^/]+)?$``), the default route has no "path":
+	openHIM then forwards the original path, id included, to the mediator.
 	"""
-	name = "openIMIS Fhir R4 %s Mediator" % resource
+	name = "openIMIS Fhir R4 %s Mediator" % (display_name or resource)
 	data = configview().__dict__["data"]
 	path = API_PREFIX + resource
 
@@ -99,6 +109,16 @@ def register_fhir_mediator(resource, urn, methods=("GET", "POST"), url_pattern=N
 		'interval': 10,
 	}
 
+	route = {
+		"name": name + " Route",
+		"host": data["mediator_url"],
+		"port": data["mediator_port"],
+		"primary": True,
+		"type": "http",
+	}
+	if url_pattern is None:
+		route["path"] = path
+
 	conf = {
 		"urn": urn,
 		"version": MEDIATOR_VERSION,
@@ -108,16 +128,7 @@ def register_fhir_mediator(resource, urn, methods=("GET", "POST"), url_pattern=N
 			{
 				"name": name,
 				"urlPattern": url_pattern or "^" + path + "$",
-				"routes": [
-					{
-						"name": name + " Route",
-						"host": data["mediator_url"],
-						"path": path,
-						"port": data["mediator_port"],
-						"primary": True,
-						"type": "http",
-					}
-				],
+				"routes": [route],
 				"allow": ["admin"],
 				"methods": list(methods),
 				"type": "http",
