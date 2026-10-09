@@ -61,7 +61,7 @@ urlpatterns = [
     path('api/api_fhir_r4/CodeSystem/diagnosis', getDiagnosis),
     path('api/api_fhir_r4/CodeSystem/diagnosis/', getDiagnosis),
     path('api/api_fhir_r4/CodeSystem/diagnosis/<str:code>', getDiagnosis),
-
+    path('api/api_fhir_r4/ClaimResponse/<str:resource_id>', getClaimResponse),
 ]
 
 # -----------------------------------------------------------------------------
