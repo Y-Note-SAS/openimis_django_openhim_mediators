@@ -25,6 +25,7 @@ from coverage_mediator.views import getCoverage
 from activitydefinition_mediator.views import getActivityDefinition
 from organisation_mediator.views import getOrganisation
 from group_mediator.views import getGroup
+from medication_mediator.views import getMedication
 from patient_mediator.views import getPatient
 from contract_mediator.views import getContract
 from diagnosis_mediator.views import getDiagnosis
@@ -37,6 +38,7 @@ from claim_mediator.views import registerClaimsMediator
 from activitydefinition_mediator.views import registerActivityDefinitionMediator
 from organisation_mediator.views import registerOrganisationMediator
 from group_mediator.views import registerGroupMediator
+from medication_mediator.views import registerMedicationMediator
 from patient_mediator.views import registerPatientMediator
 from contract_mediator.views import registerContractMediator
 from diagnosis_mediator.views import registerDiagnosisMediator
@@ -58,6 +60,8 @@ urlpatterns = [
     path('api/api_fhir_r4/Patient/<str:resource_id>', getPatient),
     path('api/api_fhir_r4/Group', getGroup),
     path('api/api_fhir_r4/Group/<str:resource_id>', getGroup),
+    path('api/api_fhir_r4/Medication', getMedication),
+    path('api/api_fhir_r4/Medication/<str:resource_id>', getMedication),
     path('api/api_fhir_r4/Contract', getContract),
     path('api/api_fhir_r4/CodeSystem/diagnosis', getDiagnosis),
     path('api/api_fhir_r4/CodeSystem/diagnosis/<str:code>', getDiagnosis),
@@ -82,6 +86,7 @@ MEDIATOR_REGISTRATIONS = (
     registerActivityDefinitionMediator,
     registerOrganisationMediator,
     registerGroupMediator,
+    registerMedicationMediator,
     registerPatientMediator,
     registerContractMediator,
     registerDiagnosisMediator,
