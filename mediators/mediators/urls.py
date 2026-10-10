@@ -22,6 +22,7 @@ from django.urls import path
 
 from claim_mediator.views import getClaims
 from coverage_mediator.views import getCoverage
+from activitydefinition_mediator.views import getActivityDefinition
 from organisation_mediator.views import getOrganisation
 from group_mediator.views import getGroup
 from patient_mediator.views import getPatient
@@ -33,6 +34,7 @@ from location_mediator.views import getLocation
 
 from coverage_mediator.views import registerCoverageMediator
 from claim_mediator.views import registerClaimsMediator
+from activitydefinition_mediator.views import registerActivityDefinitionMediator
 from organisation_mediator.views import registerOrganisationMediator
 from group_mediator.views import registerGroupMediator
 from patient_mediator.views import registerPatientMediator
@@ -50,6 +52,8 @@ urlpatterns = [
     path('api/api_fhir_r4/Claim', getClaims),
     path('api/api_fhir_r4/Coverage', getCoverage),
     path('api/api_fhir_r4/Organisation', getOrganisation),
+    path('api/api_fhir_r4/ActivityDefinition', getActivityDefinition),
+    path('api/api_fhir_r4/ActivityDefinition/<str:resource_id>', getActivityDefinition),
     path('api/api_fhir_r4/Patient', getPatient),
     path('api/api_fhir_r4/Patient/<str:resource_id>', getPatient),
     path('api/api_fhir_r4/Group', getGroup),
@@ -75,6 +79,7 @@ urlpatterns = [
 MEDIATOR_REGISTRATIONS = (
     registerClaimsMediator,
     registerCoverageMediator,
+    registerActivityDefinitionMediator,
     registerOrganisationMediator,
     registerGroupMediator,
     registerPatientMediator,
