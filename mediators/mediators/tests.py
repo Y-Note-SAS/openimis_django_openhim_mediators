@@ -93,6 +93,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             [
                 "registerClaimsMediator",
                 "registerCoverageMediator",
+                "registerActivityDefinitionMediator",
                 "registerOrganisationMediator",
                 "registerGroupMediator",
                 "registerMedicationMediator",
@@ -127,6 +128,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
         targets = [
             ("claim_mediator.views", "registerClaimsMediator"),
             ("coverage_mediator.views", "registerCoverageMediator"),
+            ("activitydefinition_mediator.views", "registerActivityDefinitionMediator"),
             ("organisation_mediator.views", "registerOrganisationMediator"),
             ("group_mediator.views", "registerGroupMediator"),
             ("medication_mediator.views", "registerMedicationMediator"),
@@ -186,6 +188,7 @@ class MediatorMetadataConsistencyTests(SimpleTestCase):
         resources = {
             "registerClaimsMediator": "Claim",
             "registerCoverageMediator": "Coverage",
+            "registerActivityDefinitionMediator": "ActivityDefinition",
             "registerOrganisationMediator": "Organisation",
             "registerGroupMediator": "Group",
             "registerMedicationMediator": "Medication",
