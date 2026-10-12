@@ -33,8 +33,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt coverage
 
-      - name: Run Django unit tests
+      - name: Run Django unit tests with coverage
         working-directory: mediators
-        run: python manage.py test
+        run: |
+          coverage run manage.py test
+          coverage report --fail-under=95
+          coverage xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: mediators/coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
