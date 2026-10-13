@@ -82,7 +82,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
         self.assertIn("registerFailing", logs.output[0])
 
     def test_all_mediators_are_registered(self):
-        """``MEDIATOR_REGISTRATIONS`` contient les 10 médiateurs, dans l'ordre attendu.
+        """``MEDIATOR_REGISTRATIONS`` contient tous les médiateurs, dans l'ordre attendu.
 
         Protège contre l'oubli d'un médiateur lors d'une modification de ``urls.py`` :
         tout ajout ou retrait doit être reporté dans ce test.
@@ -93,6 +93,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             [
                 "registerClaimsMediator",
                 "registerCoverageMediator",
+                "registerActivityDefinitionMediator",
                 "registerOrganisationMediator",
                 "registerGroupMediator",
                 "registerPatientMediator",
@@ -107,7 +108,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
     def _reload_urls_with_mocked_registrations(self, env_value):
         """Recharge ``urls.py`` avec des fonctions d'enregistrement simulées.
 
-        Remplace les 10 fonctions ``register*Mediator`` dans leurs modules
+        Remplace toutes les fonctions ``register*Mediator`` dans leurs modules
         d'origine, puis recharge ``urls.py`` avec ``OPENHIM_AUTO_REGISTER``
         positionnée à ``env_value``, ce qui ré-exécute le bloc de démarrage.
 
@@ -119,12 +120,13 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             env_value: valeur donnée à ``OPENHIM_AUTO_REGISTER`` pendant le rechargement.
 
         Returns:
-            La liste des 10 simulations, dans l'ordre de ``MEDIATOR_REGISTRATIONS``,
+            La liste des simulations, dans l'ordre de ``MEDIATOR_REGISTRATIONS``,
             pour vérifier lesquelles ont été appelées.
         """
         targets = [
             ("claim_mediator.views", "registerClaimsMediator"),
             ("coverage_mediator.views", "registerCoverageMediator"),
+            ("activitydefinition_mediator.views", "registerActivityDefinitionMediator"),
             ("organisation_mediator.views", "registerOrganisationMediator"),
             ("group_mediator.views", "registerGroupMediator"),
             ("patient_mediator.views", "registerPatientMediator"),
@@ -162,7 +164,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             register.assert_not_called()
 
     def test_loading_urls_registers_every_mediator_when_enabled(self):
-        """Charger ``urls.py`` avec l'enregistrement activé enregistre les 10 médiateurs.
+        """Charger ``urls.py`` avec l'enregistrement activé enregistre tous les médiateurs.
 
         Reproduit le démarrage sur le serveur (``OPENHIM_AUTO_REGISTER=true``
         dans ``docker-compose.yml``) : chaque médiateur doit être enregistré
@@ -171,3 +173,41 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
         mocks = self._reload_urls_with_mocked_registrations("true")
         for register in mocks:
             register.assert_called_once_with()
+
+
+class MediatorMetadataConsistencyTests(SimpleTestCase):
+    """Tous les médiateurs sont enregistrés avec le même schéma de nom et la même version."""
+
+    def test_every_mediator_uses_common_name_and_version(self):
+        from overview.fhir_proxy import MEDIATOR_VERSION
+
+        resources = {
+            "registerClaimsMediator": "Claim",
+            "registerCoverageMediator": "Coverage",
+            "registerActivityDefinitionMediator": "ActivityDefinition",
+            "registerOrganisationMediator": "Organisation",
+            "registerGroupMediator": "Group",
+            "registerPatientMediator": "Patient",
+            "registerContractMediator": "Contract",
+            "registerClaimResponseMediator": "ClaimResponse",
+            "registerCoverageEligibilityRequestMediator": "CoverageEligibilityRequest",
+            "registerLocationMediator": "Location",
+            "registerDiagnosisMediator": "Diagnosis",
+        }
+        for register in urls.MEDIATOR_REGISTRATIONS:
+            with self.subTest(register=register.__name__):
+                with patch("overview.fhir_proxy.configview") as cfg, patch(
+                    "overview.fhir_proxy.Main"
+                ) as main:
+                    cfg.return_value.__dict__["data"] = {
+                        k: "x" for k in (
+                            "openhim_url", "openhim_port", "openhim_user",
+                            "openhim_passkey", "mediator_url", "mediator_port",
+                        )
+                    }
+                    register()
+                conf = main.call_args.kwargs["conf"]
+                resource = resources[register.__name__]
+                self.assertEqual(conf["name"], f"openIMIS Fhir R4 {resource} Mediator")
+                self.assertEqual(conf["description"], conf["name"])
+                self.assertEqual(conf["version"], MEDIATOR_VERSION)
