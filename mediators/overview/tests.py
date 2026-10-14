@@ -157,3 +157,98 @@ class RegisterFhirMediatorOptionsTests(RegisterFhirMediatorTests):
         conf = self._register(url_pattern="^/p(/[^/]+)?$").call_args.kwargs["conf"]
         route = conf["defaultChannelConfig"][0]["routes"][0]
         self.assertNotIn("path", route)
+
+
+class ProxyResilienceTests(TestCase):
+    """proxy_fhir_request never answers 500 on upstream/config problems."""
+
+    def _call(self, method="get", config=None, upstream=None, side_effect=None,
+              body=None, resource_id=None):
+        import json
+        from unittest.mock import MagicMock, patch
+        from rest_framework.request import Request
+        from rest_framework.test import APIRequestFactory
+        from overview.fhir_proxy import proxy_fhir_request
+
+        factory = APIRequestFactory()
+        if method == "get":
+            raw = factory.get("/x")
+        else:
+            raw = getattr(factory, method)("/x", body or {}, format="json")
+        upstream = upstream or MagicMock(status_code=200, text=json.dumps({}))
+        with patch("overview.fhir_proxy.configview") as cfg, patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=upstream, side_effect=side_effect,
+        ) as mock_request:
+            cfg.return_value.__dict__["data"] = CONFIG_FIELDS if config is None else config
+            from rest_framework.parsers import JSONParser
+            response = proxy_fhir_request(
+                Request(raw, parsers=[JSONParser()]), "Claim", resource_id
+            )
+        return response, mock_request
+
+    def test_authorization_header_encodes_user_and_passkey(self):
+        import base64
+        _, mock_request = self._call()
+        expected = base64.b64encode(b"admin:secret").decode()
+        self.assertEqual(
+            mock_request.call_args.kwargs["headers"]["Authorization"],
+            "Basic " + expected,
+        )
+
+    def test_connection_error_returns_502(self):
+        import requests
+        response, _ = self._call(side_effect=requests.exceptions.ConnectionError("down"))
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("error", response.data)
+
+    def test_timeout_returns_504(self):
+        import requests
+        response, _ = self._call(side_effect=requests.exceptions.Timeout("slow"))
+        self.assertEqual(response.status_code, 504)
+
+    def test_post_and_patch_also_handle_network_errors(self):
+        import requests
+        for method, resource_id in (("post", None), ("patch", "1")):
+            with self.subTest(method=method):
+                response, _ = self._call(
+                    method, resource_id=resource_id,
+                    side_effect=requests.exceptions.ConnectionError("down"),
+                )
+                self.assertEqual(response.status_code, 502)
+
+    def test_upstream_call_has_a_default_timeout(self):
+        _, mock_request = self._call()
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 30)
+
+    def test_timeout_is_configurable_through_environment(self):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"OPENIMIS_TIMEOUT": "5"}):
+            _, mock_request = self._call()
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 5.0)
+
+    def test_invalid_timeout_falls_back_to_default(self):
+        import os
+        from unittest.mock import patch
+        with patch.dict(os.environ, {"OPENIMIS_TIMEOUT": "abc"}):
+            _, mock_request = self._call()
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 30)
+
+    def test_missing_configuration_returns_503_without_calling_openimis(self):
+        for config in ({}, dict(CONFIG_FIELDS, openimis_url=""),
+                       {k: v for k, v in CONFIG_FIELDS.items() if k != "openimis_user"}):
+            with self.subTest(config=config):
+                response, mock_request = self._call(config=config)
+                self.assertEqual(response.status_code, 503)
+                mock_request.assert_not_called()
+
+    def test_unsupported_method_returns_405(self):
+        response, mock_request = self._call(method="delete")
+        self.assertEqual(response.status_code, 405)
+        mock_request.assert_not_called()
+
+    def test_patch_without_id_returns_400(self):
+        response, mock_request = self._call("patch")
+        self.assertEqual(response.status_code, 400)
+        mock_request.assert_not_called()

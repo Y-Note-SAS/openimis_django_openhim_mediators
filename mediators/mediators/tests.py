@@ -214,3 +214,56 @@ class MediatorMetadataConsistencyTests(SimpleTestCase):
                 self.assertEqual(conf["name"], f"openIMIS Fhir R4 {resource} Mediator")
                 self.assertEqual(conf["description"], conf["name"])
                 self.assertEqual(conf["version"], MEDIATOR_VERSION)
+
+
+class UrlRoutingTests(SimpleTestCase):
+    """Chaque URL publique mène à la bonne vue, avec l'identifiant attendu."""
+
+    def test_urls_resolve_to_expected_views(self):
+        from django.urls import resolve
+
+        expected = {
+            "/api/api_fhir_r4/Claim": ("getClaims", {}),
+            "/api/api_fhir_r4/Coverage": ("getCoverage", {}),
+            "/api/api_fhir_r4/Organisation": ("getOrganisation", {}),
+            "/api/api_fhir_r4/Contract": ("getContract", {}),
+            "/api/api_fhir_r4/ClaimResponse": ("getClaimResponse", {}),
+            "/api/api_fhir_r4/CoverageEligibilityRequest": ("getCoverageEligibilityRequest", {}),
+            "/api/api_fhir_r4/Location": ("getLocation", {}),
+            "/api/api_fhir_r4/Patient": ("getPatient", {}),
+            "/api/api_fhir_r4/Patient/p1": ("getPatient", {"resource_id": "p1"}),
+            "/api/api_fhir_r4/Group": ("getGroup", {}),
+            "/api/api_fhir_r4/Group/g1": ("getGroup", {"resource_id": "g1"}),
+            "/api/api_fhir_r4/Medication": ("getMedication", {}),
+            "/api/api_fhir_r4/Medication/m1": ("getMedication", {"resource_id": "m1"}),
+            "/api/api_fhir_r4/ActivityDefinition": ("getActivityDefinition", {}),
+            "/api/api_fhir_r4/ActivityDefinition/a1": ("getActivityDefinition", {"resource_id": "a1"}),
+            "/api/api_fhir_r4/CodeSystem/diagnosis": ("getDiagnosis", {}),
+            "/api/api_fhir_r4/CodeSystem/diagnosis/A01": ("getDiagnosis", {"code": "A01"}),
+        }
+        for path, (view_name, kwargs) in expected.items():
+            with self.subTest(path=path):
+                match = resolve(path)
+                self.assertIs(match.func, getattr(urls, view_name))
+                self.assertEqual(match.kwargs, kwargs)
+
+    def test_every_view_is_reachable_through_the_url_conf(self):
+        """Une requête passe de l'URL au proxy et le statut openIMIS est relayé."""
+        import json
+        from django.test import Client
+
+        upstream = MagicMock(status_code=201, text=json.dumps({"ok": True}))
+        data = {
+            "openimis_url": "http://openimis.local", "openimis_port": 8080,
+            "openimis_user": "admin", "openimis_passkey": "secret",
+        }
+        with patch("overview.fhir_proxy.configview") as cfg, patch(
+            "overview.fhir_proxy.requests.request", return_value=upstream
+        ) as mock_request:
+            cfg.return_value.__dict__["data"] = data
+            response = Client().post(
+                "/api/api_fhir_r4/Claim", {"resourceType": "Claim"},
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(mock_request.call_args[0][1], "http://openimis.local:8080/api/api_fhir_r4/Claim")

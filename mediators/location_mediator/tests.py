@@ -119,3 +119,13 @@ class GetLocationTests(TestCase):
 
         mock_request.assert_not_called()
         self.assertEqual(response.status_code, 405)
+
+    def test_write_methods_return_405(self):
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            for method in ("post", "patch", "put"):
+                with self.subTest(method=method):
+                    request = getattr(self.factory, method)(
+                        "/api/api_fhir_r4/Location", {}, format="json"
+                    )
+                    self.assertEqual(getLocation(request).status_code, 405)
+        mock_request.assert_not_called()
