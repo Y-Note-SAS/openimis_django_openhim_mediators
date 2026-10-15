@@ -64,6 +64,7 @@ urlpatterns = [
     path('api/api_fhir_r4/Medication/<str:resource_id>', getMedication),
     path('api/api_fhir_r4/Contract', getContract),
     path('api/api_fhir_r4/ClaimResponse', getClaimResponse),
+    path('api/api_fhir_r4/ClaimResponse/<str:resource_id>', getClaimResponse),
     path('api/api_fhir_r4/CoverageEligibilityRequest', getCoverageEligibilityRequest),
     path('api/api_fhir_r4/Location', getLocation),
     path('api/api_fhir_r4/CodeSystem/diagnosis', getDiagnosis),
