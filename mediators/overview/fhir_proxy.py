@@ -8,6 +8,7 @@ request forwarding and the openHIM registration live here once.
 
 import base64
 import json
+import os
 
 import requests
 from rest_framework import status
@@ -21,6 +22,18 @@ API_PREFIX = "/api/api_fhir_r4/"
 # Single version for all mediators; bump it whenever a registration changes so
 # openHIM picks up the new configuration.
 MEDIATOR_VERSION = "1.0.3"
+# Seconds to wait for openIMIS before giving up (OPENIMIS_TIMEOUT overrides it).
+DEFAULT_UPSTREAM_TIMEOUT = 30
+OPENIMIS_CONFIG_KEYS = (
+	"openimis_url", "openimis_port", "openimis_user", "openimis_passkey",
+)
+
+
+def upstream_timeout():
+	try:
+		return float(os.environ.get("OPENIMIS_TIMEOUT", DEFAULT_UPSTREAM_TIMEOUT))
+	except ValueError:
+		return DEFAULT_UPSTREAM_TIMEOUT
 
 
 def _openimis_auth_header(data):
@@ -31,10 +44,24 @@ def _openimis_auth_header(data):
 def _forward(method, url, headers, **kwargs):
 	"""Call openIMIS and relay its payload and status code.
 
-	A non-JSON upstream body (HTML error page, proxy error...) is reported as 502
-	instead of crashing the view with a 500.
+	A non-JSON upstream body (HTML error page, proxy error...) is reported as 502,
+	an unreachable openIMIS as 502 and a timeout as 504, instead of crashing the
+	view with a 500.
 	"""
-	response = requests.request(method, url, headers=headers, **kwargs)
+	try:
+		response = requests.request(
+			method, url, headers=headers, timeout=upstream_timeout(), **kwargs
+		)
+	except requests.exceptions.Timeout:
+		return Response(
+			{"error": "openIMIS did not answer in time"},
+			status=status.HTTP_504_GATEWAY_TIMEOUT,
+		)
+	except requests.exceptions.RequestException:
+		return Response(
+			{"error": "openIMIS is unreachable"},
+			status=status.HTTP_502_BAD_GATEWAY,
+		)
 	try:
 		datac = json.loads(response.text)
 	except ValueError:
@@ -58,6 +85,11 @@ def proxy_fhir_request(request, resource, resource_id=None, trailing_slash=False
 	# configview() returns a DRF Response; its payload is read through __dict__
 	# like everywhere else in the project.
 	data = configview().__dict__["data"]
+	if not all(data.get(key) not in (None, "") for key in OPENIMIS_CONFIG_KEYS):
+		return Response(
+			{"error": "The openIMIS connection is not configured"},
+			status=status.HTTP_503_SERVICE_UNAVAILABLE,
+		)
 	auth = {"Authorization": _openimis_auth_header(data)}
 	url = "%s:%s%s%s%s" % (
 		data["openimis_url"], data["openimis_port"], API_PREFIX, resource,
@@ -81,6 +113,10 @@ def proxy_fhir_request(request, resource, resource_id=None, trailing_slash=False
 				status=status.HTTP_400_BAD_REQUEST,
 			)
 		return _forward("PATCH", url.rstrip("/") + "/" + resource_id + "/", headers, data=body)
+	return Response(
+		{"error": "Method %s is not supported" % request.method},
+		status=status.HTTP_405_METHOD_NOT_ALLOWED,
+	)
 
 
 def register_fhir_mediator(resource, urn, methods=("GET", "POST"), url_pattern=None,
