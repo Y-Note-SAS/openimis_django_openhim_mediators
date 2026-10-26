@@ -101,6 +101,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
                 "registerContractMediator",
                 "registerClaimResponseMediator",
                 "registerCoverageEligibilityRequestMediator",
+                "registerPlanDefinitionMediator",
                 "registerLocationMediator",
                 "registerDiagnosisMediator",
             ],
@@ -135,6 +136,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             ("contract_mediator.views", "registerContractMediator"),
             ("claimresponse_mediator.views", "registerClaimResponseMediator"),
             ("coverageeligibilityrequest_mediator.views", "registerCoverageEligibilityRequestMediator"),
+            ("plandefinition_mediator.views", "registerPlanDefinitionMediator"),
             ("location_mediator.views", "registerLocationMediator"),
             ("diagnosis_mediator.views", "registerDiagnosisMediator"),
         ]
@@ -194,6 +196,7 @@ class MediatorMetadataConsistencyTests(SimpleTestCase):
             "registerContractMediator": "Contract",
             "registerClaimResponseMediator": "ClaimResponse",
             "registerCoverageEligibilityRequestMediator": "CoverageEligibilityRequest",
+            "registerPlanDefinitionMediator": "PlanDefinition",
             "registerLocationMediator": "Location",
             "registerDiagnosisMediator": "Diagnosis",
         }
