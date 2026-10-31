@@ -341,11 +341,30 @@ class CapabilityStatementTests(TestCase):
         from mediators import urls
         from overview.capability import RESOURCES
 
+        from overview.capability import LEGACY_ALIASES
+
         listed = {r[0] for r in RESOURCES}
         served = set()
         for pattern in urls.urlpatterns:
             if isinstance(pattern, URLPattern):
                 route = str(pattern.pattern)
                 if route.startswith("api/api_fhir_r4/") and route != "api/api_fhir_r4/metadata":
-                    served.add(route.split("/")[2])
+                    name = route.split("/")[2]
+                    served.add(LEGACY_ALIASES.get(name, name))
         self.assertEqual(served, listed)
+
+    def test_aliases_are_served_by_the_same_view_as_the_advertised_type(self):
+        from django.urls import resolve
+        from overview.capability import LEGACY_ALIASES
+
+        for alias, fhir_type in LEGACY_ALIASES.items():
+            with self.subTest(alias=alias):
+                self.assertIs(
+                    resolve("/api/api_fhir_r4/" + alias).func,
+                    resolve("/api/api_fhir_r4/" + fhir_type).func,
+                )
+
+    def test_statement_advertises_organization_not_organisation(self):
+        types = [r["type"] for r in self._get().json()["rest"][0]["resource"]]
+        self.assertIn("Organization", types)
+        self.assertNotIn("Organisation", types)

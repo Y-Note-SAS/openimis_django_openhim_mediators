@@ -19,7 +19,8 @@ from overview.fhir_proxy import API_PREFIX, MEDIATOR_VERSION, register_fhir_medi
 FHIR_VERSION = "4.0.1"
 
 # (resource type as served in the URL, FHIR interactions, documentation)
-# Resource types are the ones in the URL, which openIMIS spells "Organisation".
+# Resource types are the FHIR ones; LEGACY_ALIASES lists the other spellings that
+# are still served but not advertised.
 RESOURCES = (
 	("ActivityDefinition", ("read", "search-type"), None),
 	("Claim", ("search-type", "create"), None),
@@ -33,9 +34,12 @@ RESOURCES = (
 	("Group", ("read", "search-type", "create", "patch"), None),
 	("Location", ("search-type",), None),
 	("Medication", ("read", "search-type"), None),
-	("Organisation", ("search-type", "create"), None),
+	("Organization", ("search-type", "create"), None),
 	("Patient", ("read", "search-type", "create", "patch"), None),
 )
+
+# Served URL spelling -> FHIR type advertised in the statement
+LEGACY_ALIASES = {"Organisation": "Organization"}
 
 
 def build_capability_statement(base_url):

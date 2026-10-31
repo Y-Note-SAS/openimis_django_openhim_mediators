@@ -21,7 +21,7 @@ from overview.views import configview
 API_PREFIX = "/api/api_fhir_r4/"
 # Single version for all mediators; bump it whenever a registration changes so
 # openHIM picks up the new configuration.
-MEDIATOR_VERSION = "1.0.3"
+MEDIATOR_VERSION = "1.0.4"
 # Seconds to wait for openIMIS before giving up (OPENIMIS_TIMEOUT overrides it).
 DEFAULT_UPSTREAM_TIMEOUT = 30
 OPENIMIS_CONFIG_KEYS = (

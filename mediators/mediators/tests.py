@@ -228,6 +228,7 @@ class UrlRoutingTests(SimpleTestCase):
         expected = {
             "/api/api_fhir_r4/Claim": ("getClaims", {}),
             "/api/api_fhir_r4/Coverage": ("getCoverage", {}),
+            "/api/api_fhir_r4/Organization": ("getOrganisation", {}),
             "/api/api_fhir_r4/Organisation": ("getOrganisation", {}),
             "/api/api_fhir_r4/Contract": ("getContract", {}),
             "/api/api_fhir_r4/ClaimResponse": ("getClaimResponse", {}),
