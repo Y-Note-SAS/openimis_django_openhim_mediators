@@ -252,3 +252,100 @@ class ProxyResilienceTests(TestCase):
         response, mock_request = self._call("patch")
         self.assertEqual(response.status_code, 400)
         mock_request.assert_not_called()
+
+
+class CapabilityStatementTests(TestCase):
+    """GET /api/api_fhir_r4/metadata: the CapabilityStatement of the mediators."""
+
+    def _get(self, path="/api/api_fhir_r4/metadata"):
+        from django.test import Client
+        return Client().get(path)
+
+    def test_returns_a_valid_capability_statement(self):
+        response = self._get()
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["resourceType"], "CapabilityStatement")
+        self.assertEqual(body["status"], "active")
+        self.assertEqual(body["kind"], "instance")
+        self.assertEqual(body["fhirVersion"], "4.0.1")
+        self.assertEqual(body["format"], ["json"])
+        self.assertEqual(body["rest"][0]["mode"], "server")
+        self.assertRegex(body["date"], r"^\d{4}-\d{2}-\d{2}$")
+
+    def test_reports_mediator_version_and_endpoint_url(self):
+        from overview.fhir_proxy import MEDIATOR_VERSION
+        body = self._get().json()
+        self.assertEqual(body["software"]["version"], MEDIATOR_VERSION)
+        self.assertEqual(
+            body["implementation"]["url"], "http://testserver/api/api_fhir_r4"
+        )
+
+    def test_works_without_openimis_configuration_or_network(self):
+        from unittest.mock import patch
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            response = self._get()
+        self.assertEqual(response.status_code, 200)
+        mock_request.assert_not_called()
+
+    def test_only_get_is_allowed(self):
+        from django.test import Client
+        for method in ("post", "put", "patch", "delete"):
+            with self.subTest(method=method):
+                response = getattr(Client(), method)("/api/api_fhir_r4/metadata")
+                self.assertEqual(response.status_code, 405)
+
+    def test_each_resource_is_listed_once_with_documented_interactions(self):
+        from overview.capability import RESOURCES
+        types = [r["type"] for r in self._get().json()["rest"][0]["resource"]]
+        self.assertEqual(types, [r[0] for r in RESOURCES])
+        self.assertEqual(len(types), len(set(types)))
+
+    def test_documentation_is_included_when_provided(self):
+        resources = {r["type"]: r for r in self._get().json()["rest"][0]["resource"]}
+        self.assertIn("diagnosis", resources["CodeSystem"]["documentation"])
+        self.assertNotIn("documentation", resources["Claim"])
+
+    def test_registry_matches_the_url_conf_and_allowed_methods(self):
+        """RESOURCES cannot drift from what urls.py and the views really serve."""
+        from django.urls import Resolver404, resolve
+        from overview.capability import RESOURCES
+
+        def methods_for(path):
+            try:
+                return set(resolve(path).func.cls.http_method_names)
+            except Resolver404:
+                return None
+
+        for resource_type, interactions, _ in RESOURCES:
+            with self.subTest(resource=resource_type):
+                # CodeSystem is only served for the "diagnosis" instance
+                base = "/api/api_fhir_r4/" + resource_type + (
+                    "/diagnosis" if resource_type == "CodeSystem" else ""
+                )
+                collection = methods_for(base)
+                self.assertIsNotNone(collection, "no route for " + base)
+                by_id = methods_for(base + "/x")
+                if resource_type == "CodeSystem":
+                    # read of the instance itself: GET on the collection route
+                    self.assertIn("get", collection)
+                else:
+                    self.assertEqual("read" in interactions, by_id is not None and "get" in by_id)
+                    self.assertEqual("search-type" in interactions, "get" in collection)
+                self.assertEqual("create" in interactions, "post" in collection)
+                expects_patch = "patch" in interactions
+                self.assertEqual(expects_patch, bool(by_id) and "patch" in by_id)
+
+    def test_every_served_route_is_in_the_registry(self):
+        from django.urls import URLPattern
+        from mediators import urls
+        from overview.capability import RESOURCES
+
+        listed = {r[0] for r in RESOURCES}
+        served = set()
+        for pattern in urls.urlpatterns:
+            if isinstance(pattern, URLPattern):
+                route = str(pattern.pattern)
+                if route.startswith("api/api_fhir_r4/") and route != "api/api_fhir_r4/metadata":
+                    served.add(route.split("/")[2])
+        self.assertEqual(served, listed)

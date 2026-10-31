@@ -103,6 +103,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
                 "registerCoverageEligibilityRequestMediator",
                 "registerLocationMediator",
                 "registerDiagnosisMediator",
+                "registerCapabilityStatementMediator",
             ],
         )
 
@@ -137,6 +138,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             ("coverageeligibilityrequest_mediator.views", "registerCoverageEligibilityRequestMediator"),
             ("location_mediator.views", "registerLocationMediator"),
             ("diagnosis_mediator.views", "registerDiagnosisMediator"),
+            ("overview.capability", "registerCapabilityStatementMediator"),
         ]
         mocks = []
         patchers = []
@@ -196,6 +198,7 @@ class MediatorMetadataConsistencyTests(SimpleTestCase):
             "registerCoverageEligibilityRequestMediator": "CoverageEligibilityRequest",
             "registerLocationMediator": "Location",
             "registerDiagnosisMediator": "Diagnosis",
+            "registerCapabilityStatementMediator": "CapabilityStatement",
         }
         for register in urls.MEDIATOR_REGISTRATIONS:
             with self.subTest(register=register.__name__):
@@ -238,6 +241,8 @@ class UrlRoutingTests(SimpleTestCase):
             "/api/api_fhir_r4/Medication/m1": ("getMedication", {"resource_id": "m1"}),
             "/api/api_fhir_r4/ActivityDefinition": ("getActivityDefinition", {}),
             "/api/api_fhir_r4/ActivityDefinition/a1": ("getActivityDefinition", {"resource_id": "a1"}),
+            "/api/api_fhir_r4/ClaimResponse/r1": ("getClaimResponse", {"resource_id": "r1"}),
+            "/api/api_fhir_r4/metadata": ("getCapabilityStatement", {}),
             "/api/api_fhir_r4/CodeSystem/diagnosis": ("getDiagnosis", {}),
             "/api/api_fhir_r4/CodeSystem/diagnosis/A01": ("getDiagnosis", {"code": "A01"}),
         }
