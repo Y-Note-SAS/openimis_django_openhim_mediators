@@ -124,3 +124,33 @@ class getOrganisationTests(TestCase):
             response = getOrganisation(self.factory.delete(PATH))
         mock_request.assert_not_called()
         self.assertEqual(response.status_code, 405)
+
+    def test_both_spellings_forward_to_openimis_organisation(self):
+        """/Organization (FHIR) and /Organisation (legacy) reach the same openIMIS endpoint."""
+        from django.test import Client
+
+        for path in ("/api/api_fhir_r4/Organization", "/api/api_fhir_r4/Organisation"):
+            with self.subTest(path=path):
+                with patch(
+                    "overview.fhir_proxy.requests.request",
+                    return_value=fake_upstream_response(200, {"resourceType": "Bundle"}),
+                ) as mock_request:
+                    response = Client().get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    mock_request.call_args[0][1],
+                    "http://openimis.local:8080/api/api_fhir_r4/Organisation",
+                )
+
+    def test_registration_channel_matches_both_spellings(self):
+        import re
+        from unittest.mock import patch as mock_patch
+        from organisation_mediator.views import registerOrganisationMediator
+
+        with mock_patch("overview.fhir_proxy.Main") as main:
+            registerOrganisationMediator()
+        channel = main.call_args.kwargs["conf"]["defaultChannelConfig"][0]
+        for path in ("/api/api_fhir_r4/Organization", "/api/api_fhir_r4/Organisation"):
+            self.assertRegex(path, channel["urlPattern"])
+        self.assertIsNone(re.match(channel["urlPattern"], "/api/api_fhir_r4/Organizations"))
+        self.assertNotIn("path", channel["routes"][0])

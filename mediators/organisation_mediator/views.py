@@ -1,6 +1,11 @@
 """
 openHIM Organisation mediator: exposes the openIMIS FHIR R4 Organisation resource (GET/POST).
 
+The FHIR type is spelled "Organization"; openIMIS (and earlier clients) use
+"Organisation". Both /Organization and /Organisation are served by the same
+view and forwarded to openIMIS's /Organisation; the CapabilityStatement
+advertises "Organization".
+
 The forwarding and registration logic is shared in overview.fhir_proxy.
 """
 
@@ -19,4 +24,5 @@ def registerOrganisationMediator():
 		"Organisation",
 		urn="urn:mediator:python_fhir_r4_Organisation_mediator",
 		methods=("GET", "POST"),
+		url_pattern="^/api/api_fhir_r4/Organi[sz]ation$",
 	)

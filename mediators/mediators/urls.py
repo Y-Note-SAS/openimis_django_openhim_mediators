@@ -32,6 +32,7 @@ from claimresponse_mediator.views import getClaimResponse
 from coverageeligibilityrequest_mediator.views import getCoverageEligibilityRequest
 from location_mediator.views import getLocation
 from diagnosis_mediator.views import getDiagnosis
+from overview.capability import getCapabilityStatement, registerCapabilityStatementMediator
 
 from coverage_mediator.views import registerCoverageMediator
 from claim_mediator.views import registerClaimsMediator
@@ -53,6 +54,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/api_fhir_r4/Claim', getClaims),
     path('api/api_fhir_r4/Coverage', getCoverage),
+    path('api/api_fhir_r4/Organization', getOrganisation),
     path('api/api_fhir_r4/Organisation', getOrganisation),
     path('api/api_fhir_r4/ActivityDefinition', getActivityDefinition),
     path('api/api_fhir_r4/ActivityDefinition/<str:resource_id>', getActivityDefinition),
@@ -67,6 +69,7 @@ urlpatterns = [
     path('api/api_fhir_r4/ClaimResponse/<str:resource_id>', getClaimResponse),
     path('api/api_fhir_r4/CoverageEligibilityRequest', getCoverageEligibilityRequest),
     path('api/api_fhir_r4/Location', getLocation),
+    path('api/api_fhir_r4/metadata', getCapabilityStatement),
     path('api/api_fhir_r4/CodeSystem/diagnosis', getDiagnosis),
     path('api/api_fhir_r4/CodeSystem/diagnosis/<str:code>', getDiagnosis),
 
@@ -93,6 +96,7 @@ MEDIATOR_REGISTRATIONS = (
     registerCoverageEligibilityRequestMediator,
     registerLocationMediator,
     registerDiagnosisMediator,
+    registerCapabilityStatementMediator,
 )
 
 
