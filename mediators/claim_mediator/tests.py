@@ -67,7 +67,7 @@ class getClaimsTests(TestCase):
         self.assertEqual(response.data, payload)
         args, kwargs = mock_request.call_args
         self.assertEqual(args[0], "GET")
-        self.assertEqual(args[1], "http://openimis.local:8080" + PATH)
+        self.assertEqual(args[1], "http://openimis.local:8080" + PATH + "/")
         self.assertTrue(kwargs["headers"]["Authorization"].startswith("Basic "))
 
     def test_get_forwards_query_params_without_empty_key(self):
@@ -122,5 +122,106 @@ class getClaimsTests(TestCase):
     def test_unsupported_method_returns_405(self):
         with patch("overview.fhir_proxy.requests.request") as mock_request:
             response = getClaims(self.factory.delete(PATH))
+        mock_request.assert_not_called()
+        self.assertEqual(response.status_code, 405)
+
+    # ------------------------------------------------------------------
+    # GET par identifiant
+    # ------------------------------------------------------------------
+    def _get_by_id(self, upstream, resource_id="r-1"):
+        with patch(
+            "overview.fhir_proxy.requests.request", return_value=upstream
+        ) as mock_request:
+            request = self.factory.get(PATH + "/" + resource_id)
+            response = getClaims(request, resource_id=resource_id)
+        return response, mock_request
+
+    def test_get_by_id_reads_single_resource(self):
+        """GET /Claim/<id> appelle /Claim/<id>/ sur openIMIS."""
+        payload = {"resourceType": "Claim", "id": "r-1"}
+        response, mock_request = self._get_by_id(fake_upstream_response(200, payload))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, payload)
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "GET")
+        self.assertEqual(args[1], "http://openimis.local:8080" + PATH + "/r-1/")
+        self.assertEqual(kwargs["params"], {})
+
+    def test_get_by_unknown_id_propagates_404(self):
+        """Un identifiant inconnu : le 404 d'openIMIS est relayé tel quel."""
+        error = {"resourceType": "OperationOutcome", "issue": [{"code": "not-found"}]}
+        response, _ = self._get_by_id(fake_upstream_response(404, error), "unknown")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data, error)
+
+    def test_get_by_id_returns_502_when_upstream_body_is_not_json(self):
+        """Un corps non JSON reçu d'openIMIS produit un 502."""
+        response, _ = self._get_by_id(
+            fake_upstream_response(200, text="<html>not json</html>")
+        )
+        self.assertEqual(response.status_code, 502)
+
+    def test_post_with_id_returns_405(self):
+        """POST est réservé à la collection : POST /Claim/<id> renvoie 405."""
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            request = self.factory.post(PATH + "/r-1", {}, format="json")
+            response = getClaims(request, resource_id="r-1")
+        mock_request.assert_not_called()
+        self.assertEqual(response.status_code, 405)
+
+    # ------------------------------------------------------------------
+    # PATCH
+    # ------------------------------------------------------------------
+    def _patch(self, upstream, body, resource_id="c-1"):
+        with patch(
+            "overview.fhir_proxy.requests.request", return_value=upstream
+        ) as mock_request:
+            url = PATH + ("/" + resource_id if resource_id else "")
+            request = self.factory.patch(url, body, format="json")
+            response = getClaims(request, resource_id=resource_id)
+        return response, mock_request
+
+    def test_patch_forwards_body_to_claim_id(self):
+        """PATCH /Claim/<id> transmet le corps à /Claim/<id>/ sur openIMIS."""
+        body = {"resourceType": "Claim", "billablePeriod": {"start": "2026-09-30"}}
+        payload = dict(body, id="c-1")
+        response, mock_request = self._patch(fake_upstream_response(200, payload), body)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, payload)
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "PATCH")
+        self.assertEqual(args[1], "http://openimis.local:8080" + PATH + "/c-1/")
+        self.assertEqual(json.loads(kwargs["data"]), body)
+        self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
+
+    def test_patch_without_id_returns_400(self):
+        """PATCH sans identifiant renvoie 400 sans appeler openIMIS."""
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            response = getClaims(self.factory.patch(PATH, {}, format="json"))
+        mock_request.assert_not_called()
+        self.assertEqual(response.status_code, 400)
+
+    def test_patch_propagates_upstream_error_status(self):
+        """Une erreur d'openIMIS sur le PATCH est relayée telle quelle."""
+        error = {"error": "invalid claim patch"}
+        response, _ = self._patch(fake_upstream_response(400, error), {"status": "x"})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data, error)
+
+    def test_patch_returns_502_when_upstream_body_is_not_json(self):
+        """Un corps non JSON reçu d'openIMIS sur le PATCH produit un 502."""
+        response, _ = self._patch(
+            fake_upstream_response(200, text="<html>not json</html>"), {"status": "x"}
+        )
+        self.assertEqual(response.status_code, 502)
+
+    def test_put_returns_405(self):
+        """PUT n'est pas exposé : 405."""
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            response = getClaims(
+                self.factory.put(PATH + "/c-1", {}, format="json"), resource_id="c-1"
+            )
         mock_request.assert_not_called()
         self.assertEqual(response.status_code, 405)
