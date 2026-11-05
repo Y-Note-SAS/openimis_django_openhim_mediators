@@ -20,6 +20,8 @@ FAKE_CONFIG_DATA = {
 }
 
 PATH = "/api/api_fhir_r4/Organisation"
+# URL appelée chez openIMIS : orthographe FHIR et barre oblique finale
+OPENIMIS_PATH = "/api/api_fhir_r4/Organization/"
 
 
 class FakeConfigResult:
@@ -67,7 +69,7 @@ class getOrganisationTests(TestCase):
         self.assertEqual(response.data, payload)
         args, kwargs = mock_request.call_args
         self.assertEqual(args[0], "GET")
-        self.assertEqual(args[1], "http://openimis.local:8080" + PATH)
+        self.assertEqual(args[1], "http://openimis.local:8080" + OPENIMIS_PATH)
         self.assertTrue(kwargs["headers"]["Authorization"].startswith("Basic "))
 
     def test_get_forwards_query_params_without_empty_key(self):
@@ -103,6 +105,7 @@ class getOrganisationTests(TestCase):
         self.assertEqual(response.data, payload)
         args, kwargs = mock_request.call_args
         self.assertEqual(args[0], "POST")
+        self.assertEqual(args[1], "http://openimis.local:8080" + OPENIMIS_PATH)
         self.assertEqual(json.loads(kwargs["data"]), body)
         self.assertEqual(kwargs["headers"]["Content-Type"], "application/json")
         self.assertNotIn("params", kwargs)
