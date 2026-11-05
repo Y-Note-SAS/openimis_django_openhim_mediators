@@ -11,7 +11,9 @@ from overview.fhir_proxy import proxy_fhir_request, register_fhir_mediator
 
 @api_view(["GET", "POST"])
 def getOrganisation(request):
-	return proxy_fhir_request(request, "Organisation")
+	# openIMIS expose la ressource sous l'orthographe FHIR « Organization »,
+	# avec une barre oblique finale (sans elle : redirection 301).
+	return proxy_fhir_request(request, "Organization", trailing_slash=True)
 
 
 def registerOrganisationMediator():
