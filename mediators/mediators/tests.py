@@ -103,6 +103,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
                 "registerCoverageEligibilityRequestMediator",
                 "registerLocationMediator",
                 "registerDiagnosisMediator",
+                "registerPractitionerMediator",
             ],
         )
 
@@ -137,6 +138,7 @@ class MediatorAutoRegistrationTests(SimpleTestCase):
             ("coverageeligibilityrequest_mediator.views", "registerCoverageEligibilityRequestMediator"),
             ("location_mediator.views", "registerLocationMediator"),
             ("diagnosis_mediator.views", "registerDiagnosisMediator"),
+            ("practitioner_mediator.views", "registerPractitionerMediator"),
         ]
         mocks = []
         patchers = []
@@ -196,6 +198,7 @@ class MediatorMetadataConsistencyTests(SimpleTestCase):
             "registerCoverageEligibilityRequestMediator": "CoverageEligibilityRequest",
             "registerLocationMediator": "Location",
             "registerDiagnosisMediator": "Diagnosis",
+            "registerPractitionerMediator": "Practitioner",
         }
         for register in urls.MEDIATOR_REGISTRATIONS:
             with self.subTest(register=register.__name__):
