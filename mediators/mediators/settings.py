@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'claimresponse_mediator',
     'location_mediator',
     'diagnosis_mediator',
+    'practitioner_mediator',
 ]
 
 MIDDLEWARE = [

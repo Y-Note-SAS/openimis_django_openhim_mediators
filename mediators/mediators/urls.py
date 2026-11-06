@@ -32,6 +32,7 @@ from claimresponse_mediator.views import getClaimResponse
 from coverageeligibilityrequest_mediator.views import getCoverageEligibilityRequest
 from location_mediator.views import getLocation
 from diagnosis_mediator.views import getDiagnosis
+from practitioner_mediator.views import getPractitioner
 
 from coverage_mediator.views import registerCoverageMediator
 from claim_mediator.views import registerClaimsMediator
@@ -45,6 +46,7 @@ from claimresponse_mediator.views import registerClaimResponseMediator
 from coverageeligibilityrequest_mediator.views import registerCoverageEligibilityRequestMediator
 from location_mediator.views import registerLocationMediator
 from diagnosis_mediator.views import registerDiagnosisMediator
+from practitioner_mediator.views import registerPractitionerMediator
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,8 @@ urlpatterns = [
     path('api/api_fhir_r4/Location', getLocation),
     path('api/api_fhir_r4/CodeSystem/diagnosis', getDiagnosis),
     path('api/api_fhir_r4/CodeSystem/diagnosis/<str:code>', getDiagnosis),
+    path('api/api_fhir_r4/Practitioner', getPractitioner),
+    path('api/api_fhir_r4/Practitioner/<str:resource_id>', getPractitioner),
 
 ]
 
@@ -95,6 +99,7 @@ MEDIATOR_REGISTRATIONS = (
     registerCoverageEligibilityRequestMediator,
     registerLocationMediator,
     registerDiagnosisMediator,
+    registerPractitionerMediator,
 )
 
 
