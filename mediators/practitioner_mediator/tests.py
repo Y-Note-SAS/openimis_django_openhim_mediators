@@ -1,0 +1,161 @@
+import json
+from unittest.mock import patch, MagicMock
+
+from django.test import TestCase
+from rest_framework.test import APIRequestFactory
+
+from practitioner_mediator.views import getPractitioner
+
+FAKE_CONFIG_DATA = {
+    "openimis_url": "http://openimis.local",
+    "openimis_port": 8080,
+    "openimis_user": "admin",
+    "openimis_passkey": "secret",
+    "openhim_url": "openhim.local",
+    "openhim_port": 8080,
+    "openhim_user": "openhim-admin",
+    "openhim_passkey": "openhim-secret",
+    "mediator_url": "mediator.local",
+    "mediator_port": 8000,
+}
+
+
+class FakeConfigResult:
+    """Mimics the DRF Response object returned by overview.views.configview.
+
+    getPractitioner reads it via result.__dict__["data"], so only a "data"
+    attribute needs to be set for the tests to reproduce that access pattern.
+    """
+
+    def __init__(self, data):
+        self.data = data
+
+
+def fake_upstream_response(status_code=200, payload=None):
+    response = MagicMock()
+    response.status_code = status_code
+    response.text = json.dumps(payload if payload is not None else {})
+    return response
+
+
+class GetPractitionerTests(TestCase):
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        self.config_patcher = patch(
+            "overview.fhir_proxy.configview",
+            return_value=FakeConfigResult(FAKE_CONFIG_DATA),
+        )
+        self.mock_configview = self.config_patcher.start()
+        self.addCleanup(self.config_patcher.stop)
+
+    def test_get_forwards_request_and_returns_upstream_data(self):
+        expected_payload = {"resourceType": "Bundle", "entry": []}
+        with patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=fake_upstream_response(200, expected_payload),
+        ) as mock_request:
+            request = self.factory.get("/api/api_fhir_r4/Practitioner")
+            response = getPractitioner(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_payload)
+
+        mock_request.assert_called_once()
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "GET")
+        self.assertEqual(
+            args[1], "http://openimis.local:8080/api/api_fhir_r4/Practitioner/"
+        )
+        self.assertEqual(kwargs["params"], {})
+        self.assertIn("Authorization", kwargs["headers"])
+        self.assertTrue(kwargs["headers"]["Authorization"].startswith("Basic "))
+
+    def test_get_search_by_identifier_forwards_query_params(self):
+        expected_payload = {"resourceType": "Bundle", "entry": [{"id": "123"}]}
+        with patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=fake_upstream_response(200, expected_payload),
+        ) as mock_request:
+            request = self.factory.get(
+                "/api/api_fhir_r4/Practitioner", {"identifier": "123"}
+            )
+            response = getPractitioner(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_payload)
+
+        args, kwargs = mock_request.call_args
+        self.assertEqual(kwargs["params"], {"identifier": "123"})
+
+    def test_get_propagates_upstream_error_payload(self):
+        error_payload = {"error": "not found"}
+        with patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=fake_upstream_response(404, error_payload),
+        ):
+            request = self.factory.get("/api/api_fhir_r4/Practitioner")
+            response = getPractitioner(request)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data, error_payload)
+
+    def test_get_returns_502_when_upstream_body_is_not_json(self):
+        broken_response = MagicMock()
+        broken_response.status_code = 200
+        broken_response.text = "<html>not json</html>"
+        with patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=broken_response,
+        ):
+            request = self.factory.get("/api/api_fhir_r4/Practitioner")
+            response = getPractitioner(request)
+
+        self.assertEqual(response.status_code, 502)
+
+    def test_unsupported_method_returns_405(self):
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            request = self.factory.post("/api/api_fhir_r4/Practitioner", {})
+            response = getPractitioner(request)
+
+        mock_request.assert_not_called()
+        self.assertEqual(response.status_code, 405)
+
+    def test_get_by_id_forwards_to_practitioner_id(self):
+        """GET /Practitioner/<id> lit le praticien sur /Practitioner/<id>/ chez openIMIS."""
+        expected_payload = {"resourceType": "Practitioner", "id": "p-1"}
+        with patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=fake_upstream_response(200, expected_payload),
+        ) as mock_request:
+            request = self.factory.get("/api/api_fhir_r4/Practitioner/p-1")
+            response = getPractitioner(request, resource_id="p-1")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, expected_payload)
+        args, kwargs = mock_request.call_args
+        self.assertEqual(args[0], "GET")
+        self.assertEqual(
+            args[1], "http://openimis.local:8080/api/api_fhir_r4/Practitioner/p-1/"
+        )
+
+    def test_get_by_unknown_id_propagates_404(self):
+        """Un identifiant inconnu chez openIMIS renvoie l'erreur telle quelle."""
+        error_payload = {"resourceType": "OperationOutcome"}
+        with patch(
+            "overview.fhir_proxy.requests.request",
+            return_value=fake_upstream_response(404, error_payload),
+        ):
+            request = self.factory.get("/api/api_fhir_r4/Practitioner/inconnu")
+            response = getPractitioner(request, resource_id="inconnu")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data, error_payload)
+
+    def test_patch_returns_405(self):
+        """Le médiateur est en lecture seule : PATCH renvoie 405 sans appeler openIMIS."""
+        with patch("overview.fhir_proxy.requests.request") as mock_request:
+            request = self.factory.patch("/api/api_fhir_r4/Practitioner/p-1", {}, format="json")
+            response = getPractitioner(request, resource_id="p-1")
+
+        mock_request.assert_not_called()
+        self.assertEqual(response.status_code, 405)
